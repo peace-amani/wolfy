@@ -531,486 +531,64 @@ async function startPairing(phone, isReconnect = false) {
     }
 }
 
-// ====== HTML UI ======
+// ====== HTML UI — backend status only (pairing UI lives at minibot.xwolf.space) ======
 function getHTML() {
+    const sessions = botProcesses.size;
+    const uptime = Math.floor(process.uptime());
+    const h = Math.floor(uptime / 3600);
+    const m = Math.floor((uptime % 3600) / 60);
+    const s = uptime % 60;
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>WOLFY — Pairing Panel</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+<title>WOLFY — Bot API</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --green: #00ff00;
-    --green-dim: rgba(0,255,0,0.12);
-    --green-border: rgba(0,255,0,0.2);
-    --green-border-hover: rgba(0,255,0,0.45);
-    --green-glow: 0 0 18px rgba(0,255,0,0.28);
-    --card-bg: rgba(0,0,0,0.45);
-  }
-  html { scroll-behavior: smooth; }
   body {
     background: #000;
-    color: var(--green);
+    color: #00ff00;
     font-family: 'JetBrains Mono', monospace;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px;
-    overflow-x: hidden;
-  }
-  /* Neon grid bg */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    background:
-      linear-gradient(rgba(0,255,0,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,255,0,0.03) 1px, transparent 1px);
-    background-size: 50px 50px;
-    pointer-events: none;
-  }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #000; }
-  ::-webkit-scrollbar-thumb { background: rgba(0,255,0,0.3); border-radius: 2px; }
-  /* Header */
-  .header {
-    text-align: center;
-    padding: 40px 0 24px;
-    position: relative;
-    z-index: 10;
-  }
-  .logo-icon {
-    width: 52px; height: 52px;
-    border-radius: 12px;
-    background: var(--green-dim);
-    border: 1px solid var(--green-border);
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 16px;
-    animation: glowPulse 3s ease-in-out infinite;
-  }
-  .logo-icon svg { width: 28px; height: 28px; }
-  .header h1 {
-    font-family: 'Orbitron', monospace;
-    font-weight: 900;
-    font-size: clamp(1.6rem, 5vw, 2.4rem);
-    letter-spacing: 0.1em;
-    color: var(--green);
-    margin-bottom: 6px;
-  }
-  .header p { font-size: 0.85rem; color: rgba(0,255,0,0.55); }
-  /* Container */
-  .container {
-    width: 100%;
-    max-width: 560px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    position: relative;
-    z-index: 10;
-  }
-  /* Top status bar */
-  .top-status {
-    width: 100%;
-    max-width: 560px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--card-bg);
-    border: 1px solid var(--green-border);
-    border-radius: 12px;
-    padding: 12px 18px;
-    font-size: 0.82rem;
-    margin-bottom: 4px;
-    position: relative;
-    z-index: 10;
-    backdrop-filter: blur(8px);
-  }
-  .top-status .left { display: flex; align-items: center; gap: 8px; }
-  .indicator { width: 9px; height: 9px; border-radius: 50%; background: rgba(0,255,0,0.2); border: 1px solid var(--green-border); }
-  .indicator.green { background: var(--green); box-shadow: 0 0 8px var(--green); }
-  .indicator.yellow { background: #ffe000; box-shadow: 0 0 8px #ffe000; animation: pulse 1.5s infinite; }
-  .clear-btn {
-    font-size: 0.72rem;
-    padding: 4px 12px;
-    border: 1px solid var(--green-border);
-    border-radius: 6px;
-    background: transparent;
-    color: rgba(0,255,0,0.6);
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .clear-btn:hover { background: var(--green-dim); color: var(--green); }
-  /* Cards */
-  .card {
-    background: var(--card-bg);
-    border: 1px solid var(--green-border);
-    border-radius: 16px;
+    justify-content: center;
     padding: 24px;
-    backdrop-filter: blur(8px);
-    transition: border-color 0.3s, box-shadow 0.3s;
   }
-  .card:hover { border-color: var(--green-border-hover); box-shadow: var(--green-glow); }
-  .card h2 {
-    font-family: 'Orbitron', monospace;
-    font-size: 0.9rem;
-    font-weight: 700;
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #fff;
-    letter-spacing: 0.05em;
-  }
-  .card p.desc { color: rgba(0,255,0,0.55); font-size: 0.82rem; margin-bottom: 16px; line-height: 1.6; }
-  .badge {
-    display: inline-block;
-    font-size: 0.65rem;
-    padding: 2px 8px;
-    border-radius: 20px;
-    background: var(--green-dim);
-    color: var(--green);
-    border: 1px solid var(--green-border);
-    font-family: 'JetBrains Mono', monospace;
-  }
-  /* Inputs */
-  input[type=text], textarea {
-    width: 100%;
-    background: rgba(0,0,0,0.6);
-    border: 1px solid var(--green-border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    color: var(--green);
-    font-size: 0.9rem;
-    font-family: 'JetBrains Mono', monospace;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  input[type=text]::placeholder, textarea::placeholder { color: rgba(0,255,0,0.3); }
-  input[type=text]:focus, textarea:focus { border-color: var(--green); box-shadow: 0 0 10px rgba(0,255,0,0.15); }
-  textarea { resize: vertical; min-height: 80px; }
-  /* Buttons */
-  .btn {
-    width: 100%;
-    margin-top: 12px;
-    padding: 12px;
-    border-radius: 10px;
-    font-size: 0.88rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: 'Orbitron', monospace;
-    letter-spacing: 0.05em;
-  }
-  .btn:active { transform: scale(0.98); }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-primary {
-    background: var(--green-dim);
-    color: var(--green);
-    border: 1px solid var(--green-border);
-  }
-  .btn-primary:hover:not(:disabled) { background: rgba(0,255,0,0.18); border-color: var(--green); box-shadow: var(--green-glow); }
-  .btn-success {
-    background: var(--green-dim);
-    color: var(--green);
-    border: 1px solid var(--green-border);
-  }
-  .btn-success:hover:not(:disabled) { background: rgba(0,255,0,0.18); border-color: var(--green); box-shadow: var(--green-glow); }
-  /* Code box */
-  .code-box {
-    display: none;
-    margin-top: 18px;
-    background: rgba(0,0,0,0.7);
-    border: 1px solid rgba(0,255,0,0.4);
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-  }
-  .code-box .label { font-size: 0.75rem; color: rgba(0,255,0,0.5); margin-bottom: 8px; letter-spacing: 2px; text-transform: uppercase; }
-  .code-box .code  { font-size: 2.6rem; font-weight: 700; letter-spacing: 8px; color: var(--green); text-shadow: 0 0 20px rgba(0,255,0,0.5); }
-  .code-box .hint  { font-size: 0.75rem; color: rgba(0,255,0,0.4); margin-top: 10px; line-height: 1.5; }
-  /* Status bars */
-  .status-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 11px 16px;
-    border-radius: 10px;
-    font-size: 0.84rem;
-    margin-top: 12px;
-    display: none;
-  }
-  .status-bar.show { display: flex; }
-  .status-bar.info    { background: rgba(0,255,0,0.06); color: rgba(0,255,0,0.8); border: 1px solid rgba(0,255,0,0.2); }
-  .status-bar.success { background: rgba(0,255,0,0.1); color: var(--green); border: 1px solid rgba(0,255,0,0.35); }
-  .status-bar.error   { background: rgba(255,0,60,0.08); color: #ff4466; border: 1px solid rgba(255,0,60,0.25); }
-  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: currentColor; animation: pulse 1.5s infinite; }
-  .status-bar.success .dot, .status-bar.error .dot { animation: none; }
-  /* Steps */
-  .steps {
-    background: rgba(0,0,0,0.5);
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin-top: 14px;
-    font-size: 0.8rem;
-    color: rgba(0,255,0,0.5);
-    line-height: 1.9;
-    border: 1px solid rgba(0,255,0,0.1);
-  }
-  .steps strong { color: var(--green); }
-  .divider { text-align: center; color: rgba(0,255,0,0.3); font-size: 0.8rem; margin: 4px 0; letter-spacing: 2px; }
-  .session-note { font-size: 0.75rem; color: rgba(0,255,0,0.4); margin-top: 8px; }
-  .session-note code { color: rgba(0,255,0,0.65); }
-  .footer {
-    padding: 30px 0;
-    font-size: 0.75rem;
-    text-align: center;
-    color: rgba(0,255,0,0.3);
-    font-family: 'JetBrains Mono', monospace;
-    position: relative;
-    z-index: 10;
-  }
-  /* Animations */
-  @keyframes glowPulse {
-    0%, 100% { box-shadow: 0 0 10px rgba(0,255,0,0.1); }
-    50%       { box-shadow: 0 0 24px rgba(0,255,0,0.3); }
-  }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-  @media (max-width: 600px) { .header h1 { font-size: 1.4rem; } }
+  .wrap { text-align: center; max-width: 480px; width: 100%; }
+  h1 { font-family: 'Orbitron', monospace; font-size: 2.2rem; font-weight: 900; letter-spacing: .1em; margin-bottom: 4px; text-shadow: 0 0 20px #00ff00; }
+  .sub { color: rgba(0,255,0,.5); font-size: .85rem; margin-bottom: 32px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .stat { background: rgba(0,255,0,.06); border: 1px solid rgba(0,255,0,.18); border-radius: 12px; padding: 16px 12px; }
+  .stat .val { font-size: 1.6rem; font-weight: 700; color: #00ff00; }
+  .stat .lbl { font-size: .72rem; color: rgba(0,255,0,.45); margin-top: 2px; }
+  .badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: .75rem; border: 1px solid rgba(0,255,0,.3); background: rgba(0,255,0,.08); color: #00ff00; margin-bottom: 24px; }
+  .link { color: rgba(0,255,0,.6); font-size: .8rem; text-decoration: none; border-bottom: 1px solid rgba(0,255,0,.2); }
+  .link:hover { color: #00ff00; }
+  .footer { margin-top: 32px; color: rgba(0,255,0,.25); font-size: .72rem; }
 </style>
 </head>
 <body>
-
-<div class="header">
-  <div class="logo-icon">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#00ff00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-    </svg>
-  </div>
+<div class="wrap">
   <h1>WOLFY</h1>
-  <p>// Link your WhatsApp account to start the bot</p>
-</div>
-
-<div class="top-status" id="topStatus">
-  <div class="left">
-    <div class="indicator" id="indicator"></div>
-    <span id="statusText">Checking status...</span>
+  <p class="sub">// Bot API Backend — Heroku</p>
+  <div class="badge">&#9679; Online</div>
+  <div class="grid">
+    <div class="stat"><div class="val">${sessions}</div><div class="lbl">Active Sessions</div></div>
+    <div class="stat"><div class="val">${h}h ${m}m</div><div class="lbl">Uptime</div></div>
   </div>
-  <button class="clear-btn" onclick="clearSession()">Clear Session</button>
+  <p style="color:rgba(0,255,0,.4);font-size:.8rem;margin-bottom:16px;">
+    Pairing &amp; user panel lives at<br/>
+    <a class="link" href="https://minibot.xwolf.space" target="_blank">minibot.xwolf.space</a>
+  </p>
+  <p style="color:rgba(0,255,0,.3);font-size:.75rem;">
+    Health: <a class="link" href="/health">/health</a> &nbsp;·&nbsp; Status: <a class="link" href="/status">/status</a>
+  </p>
+  <div class="footer">WOLFY Bot API &nbsp;·&nbsp; Silent Wolf Tech</div>
 </div>
-
-<div class="container">
-
-  <!-- PAIR CODE CARD -->
-  <div class="card">
-    <h2>📱 Pair with Code <span class="badge">Recommended</span></h2>
-    <p class="desc">Enter your WhatsApp number with country code. You'll get an 8-digit code to enter in WhatsApp → Linked Devices.</p>
-    <input type="text" id="phoneInput" placeholder="e.g. 254788710904" maxlength="15"/>
-    <button class="btn btn-primary" id="pairBtn" onclick="requestPairCode()">Get Pairing Code</button>
-
-    <div class="code-box" id="codeBox">
-      <div class="label">Your Pairing Code</div>
-      <div class="code" id="pairCode">----</div>
-      <div class="hint">Open WhatsApp → Settings → Linked Devices → Link a Device → Enter code</div>
-    </div>
-
-    <div class="status-bar" id="pairStatus"></div>
-
-    <div class="steps">
-      <strong>How to link:</strong><br/>
-      1. Enter your phone number above and click "Get Pairing Code"<br/>
-      2. Open <strong>WhatsApp</strong> on your phone<br/>
-      3. Go to <strong>Settings → Linked Devices → Link a Device</strong><br/>
-      4. Enter the 8-digit code shown above
-    </div>
-  </div>
-
-  <div class="divider">— OR —</div>
-
-  <!-- SESSION ID CARD -->
-  <div class="card">
-    <h2>🔐 Use Session ID</h2>
-    <p class="desc">If you have an existing session ID from a previous connection, paste it below.</p>
-    <textarea id="sessionInput" placeholder="WOLF-BOT:eyJ... or base64 session data"></textarea>
-    <p class="session-note">Accepted formats: <code>WOLF-BOT:{base64}</code> or raw base64 / JSON</p>
-    <button class="btn btn-success" id="sessionBtn" onclick="submitSession()">Connect with Session ID</button>
-    <div class="status-bar" id="sessionStatus"></div>
-  </div>
-
-</div>
-
-<div class="footer">WOLFY v1.1.3 &nbsp;·&nbsp; Silent Wolf Bot</div>
-
-<script>
-const evtSource = new EventSource('/events');
-
-evtSource.onmessage = (e) => {
-  const data = JSON.parse(e.data);
-  handleEvent(data);
-};
-
-evtSource.onerror = () => {
-  setTopStatus('disconnected', 'Panel disconnected — refresh to reconnect');
-};
-
-function handleEvent(data) {
-  switch (data.event) {
-    case 'connected':
-      updateTopStatus(data.botStatus);
-      break;
-    case 'pairing_started':
-      showStatus('pairStatus', 'info', 'Connecting to WhatsApp and requesting code...');
-      document.getElementById('pairBtn').disabled = true;
-      break;
-    case 'pairing_code':
-      document.getElementById('pairCode').textContent = data.code;
-      document.getElementById('codeBox').style.display = 'block';
-      showStatus('pairStatus', 'info', 'Code ready! Enter it in WhatsApp → Linked Devices.');
-      break;
-    case 'connected_success':
-      showStatus('pairStatus', 'success', '✅ ' + data.message);
-      document.getElementById('codeBox').style.display = 'none';
-      document.getElementById('pairBtn').disabled = false;
-      setTopStatus('connected', 'Bot connected & running');
-      break;
-    case 'session_saved':
-      showStatus('sessionStatus', 'success', '✅ ' + data.message);
-      setTopStatus('connecting', 'Launching bot...');
-      break;
-    case 'reconnecting':
-      showStatus('pairStatus', 'info', '🔄 ' + data.message);
-      setTopStatus('connecting', 'Finalising pairing...');
-      break;
-    case 'connection_closed':
-      showStatus('pairStatus', 'error', '⚠️ ' + data.message);
-      document.getElementById('pairBtn').disabled = false;
-      updateTopStatus('idle');
-      break;
-    case 'session_cleared':
-      setTopStatus('idle', 'No active session');
-      showStatus('pairStatus', 'info', 'Session cleared. You can pair again.');
-      document.getElementById('codeBox').style.display = 'none';
-      document.getElementById('pairCode').textContent = '----';
-      document.getElementById('pairBtn').disabled = false;
-      break;
-    case 'bot_exited':
-      setTopStatus('idle', 'Bot stopped (exit code ' + data.code + ')');
-      break;
-    case 'error':
-      showStatus('pairStatus', 'error', '❌ ' + data.message);
-      document.getElementById('pairBtn').disabled = false;
-      break;
-  }
-}
-
-function updateTopStatus(status) {
-  if (status === 'connected') setTopStatus('connected', 'Bot is connected & running');
-  else if (status === 'pairing') setTopStatus('connecting', 'Pairing in progress...');
-  else setTopStatus('idle', 'No active session');
-}
-
-function setTopStatus(type, text) {
-  const ind = document.getElementById('indicator');
-  const txt = document.getElementById('statusText');
-  ind.className = 'indicator';
-  if (type === 'connected') ind.classList.add('green');
-  else if (type === 'connecting') ind.classList.add('yellow');
-  txt.textContent = text;
-}
-
-function showStatus(id, type, msg) {
-  const el = document.getElementById(id);
-  el.className = 'status-bar show ' + type;
-  el.innerHTML = '<div class="dot"></div><span>' + msg + '</span>';
-}
-
-async function requestPairCode() {
-  const phone = document.getElementById('phoneInput').value.trim().replace(/\\D/g, '');
-  if (!phone || phone.length < 7) {
-    showStatus('pairStatus', 'error', 'Please enter a valid phone number with country code.');
-    return;
-  }
-  document.getElementById('pairBtn').disabled = true;
-  document.getElementById('codeBox').style.display = 'none';
-  showStatus('pairStatus', 'info', 'Sending request...');
-
-  try {
-    const res = await fetch('/pair', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone })
-    });
-    const data = await res.json();
-    if (!data.success) {
-      showStatus('pairStatus', 'error', '❌ ' + data.error);
-      document.getElementById('pairBtn').disabled = false;
-    }
-  } catch (err) {
-    showStatus('pairStatus', 'error', '❌ Network error. Try again.');
-    document.getElementById('pairBtn').disabled = false;
-  }
-}
-
-async function submitSession() {
-  const sessionId = document.getElementById('sessionInput').value.trim();
-  if (!sessionId) {
-    showStatus('sessionStatus', 'error', 'Please paste your session ID.');
-    return;
-  }
-  document.getElementById('sessionBtn').disabled = true;
-  showStatus('sessionStatus', 'info', 'Validating session ID...');
-
-  try {
-    const res = await fetch('/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId })
-    });
-    const data = await res.json();
-    if (data.success) {
-      showStatus('sessionStatus', 'success', '✅ ' + data.message);
-    } else {
-      showStatus('sessionStatus', 'error', '❌ ' + data.error);
-      document.getElementById('sessionBtn').disabled = false;
-    }
-  } catch (err) {
-    showStatus('sessionStatus', 'error', '❌ Network error. Try again.');
-    document.getElementById('sessionBtn').disabled = false;
-  }
-}
-
-async function clearSession() {
-  if (!confirm('Clear the current session? The bot will stop.')) return;
-  try {
-    await fetch('/clear-session', { method: 'POST' });
-  } catch {}
-}
-
-// Initial status check
-fetch('/status').then(r => r.json()).then(data => {
-  if (data.botStatus === 'connected' || data.botRunning) {
-    setTopStatus('connected', 'Bot is connected & running');
-  } else if (data.hasSession) {
-    setTopStatus('idle', 'Session found but bot is not running');
-  } else {
-    setTopStatus('idle', 'No active session — pair to get started');
-  }
-}).catch(() => {
-  setTopStatus('idle', 'Could not reach server');
-});
-
-// Phone input: digits only
-document.getElementById('phoneInput').addEventListener('input', (e) => {
-  e.target.value = e.target.value.replace(/[^\\d]/g, '');
-});
-</script>
 </body>
 </html>`;
 }
@@ -1018,7 +596,7 @@ document.getElementById('phoneInput').addEventListener('input', (e) => {
 // ====== START SERVER ======
 app.listen(PORT, '0.0.0.0', async () => {
     console.log(`[WolfBot WebServer] Running on http://0.0.0.0:${PORT}`);
-    console.log(`[WolfBot WebServer] Open the preview panel to pair your WhatsApp`);
+    console.log(`[WolfBot WebServer] Pairing UI → https://minibot.xwolf.space`);
 
     // Connect to MongoDB
     await connectDB();
