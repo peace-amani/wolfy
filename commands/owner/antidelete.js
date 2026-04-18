@@ -15,6 +15,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import { updateSettings, getSettings } from '../../lib/userSettings.js';
+import {
+    cacheMessage as sqlCacheMessage,
+    cacheMedia as sqlCacheMedia,
+    getMessage as sqlGetMessage,
+    getMedia as sqlGetMedia,
+    deleteMessage as sqlDeleteMessage,
+    cleanOldMessages as sqlCleanOldMessages,
+    getCacheStats as sqlGetCacheStats
+} from '../../lib/localCache.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -160,39 +169,31 @@ async function loadData() {
     }
 }
 
-// Save data to JSON
+// Save data — now backed by SQLite (in-memory DB, no disk I/O)
 async function saveData() {
     try {
-        await ensureDirs();
-        
-        // Prepare data for JSON (exclude buffers to save memory)
-        const data = {
-            mode: antideleteState.mode,
-            messageCache: Array.from(antideleteState.messageCache.entries()),
-            mediaCache: Array.from(antideleteState.mediaCache.entries()).map(([key, value]) => {
-                // Only save metadata, not the buffer
-                return [key, {
-                    filePath: value.filePath,
-                    type: value.type,
-                    mimetype: value.mimetype,
-                    size: value.size,
-                    savedAt: value.savedAt
-                }];
-            }),
-            stats: antideleteState.stats,
-            savedAt: Date.now()
-        };
-        
-        // Write to JSON file
-        await fs.writeFile(CACHE_FILE, JSON.stringify(data, null, 2));
-        
-        // Save settings separately
-        await fs.writeFile(SETTINGS_FILE, JSON.stringify(antideleteState.settings, null, 2));
-        
-        console.log(`💾 Antidelete: Saved data to JSON (${antideleteState.messageCache.size} messages, ${antideleteState.mediaCache.size} media)`);
-        
+        // Sync in-memory Map → SQLite (fast synchronous write)
+        for (const [msgId, msg] of antideleteState.messageCache.entries()) {
+            sqlCacheMessage(msgId, {
+                chatId: msg.chatJid || '',
+                sender: msg.senderJid || '',
+                pushName: msg.pushName || '',
+                msgType: msg.type || 'text',
+                content: msg.text || '',
+                hasMedia: msg.hasMedia ? 1 : 0,
+                timestamp: msg.timestamp || Date.now()
+            });
+        }
+        for (const [msgId, media] of antideleteState.mediaCache.entries()) {
+            sqlCacheMedia(msgId, {
+                filePath: media.filePath || '',
+                type: media.type || '',
+                mimetype: media.mimetype || '',
+                size: media.size || 0
+            });
+        }
     } catch (error) {
-        console.error('❌ Antidelete: Error saving JSON data:', error.message);
+        console.error('❌ Antidelete: Error syncing to SQLite:', error.message);
     }
 }
 
@@ -218,23 +219,21 @@ function getRawWhatsAppNumber(jid) {
     }
 }
 
-// Clean retrieved message from JSON (auto-clean after sending)
+// Clean retrieved message (auto-clean after sending)
 async function cleanRetrievedMessage(msgId) {
     try {
         if (!antideleteState.settings.autoCleanRetrieved) {
             return;
         }
         
-        // Remove from message cache
+        // Remove from in-memory Maps
         antideleteState.messageCache.delete(msgId);
-        
-        // Remove media cache entry (but keep the file for now)
         antideleteState.mediaCache.delete(msgId);
         
-        // Immediately save to JSON to free memory
-        await saveData();
+        // Remove from SQLite (synchronous, no await needed)
+        sqlDeleteMessage(msgId);
         
-        console.log(`🧹 Antidelete: Cleaned retrieved message ${msgId} from JSON`);
+        console.log(`🧹 Antidelete: Cleaned retrieved message ${msgId} from cache`);
         
     } catch (error) {
         console.error('❌ Antidelete: Error cleaning retrieved message:', error.message);
@@ -255,11 +254,13 @@ async function autoCleanCache() {
         let cleanedCount = 0;
         let cleanedMedia = 0;
         
-        // Clean old messages from cache and JSON
+        // Clean old messages — SQLite handles this with one indexed DELETE
+        cleanedCount += sqlCleanOldMessages(maxAge);
+        
+        // Also clean in-memory Map
         for (const [key, message] of antideleteState.messageCache.entries()) {
             if (now - message.timestamp > maxAge) {
                 antideleteState.messageCache.delete(key);
-                cleanedCount++;
             }
         }
         
@@ -445,18 +446,20 @@ async function downloadAndSaveMedia(msgId, message, messageType, mimetype) {
         // Write file directly to disk without storing buffer in memory
         await fs.writeFile(filePath, buffer);
         
-        // Store only metadata in cache, not the buffer
-        antideleteState.mediaCache.set(msgId, {
+        // Store only metadata in cache (Map + SQLite), not the buffer
+        const mediaMeta = {
             filePath: filePath,
             type: messageType,
             mimetype: mimetype,
             size: buffer.length,
             savedAt: timestamp
-        });
+        };
+        antideleteState.mediaCache.set(msgId, mediaMeta);
+        sqlCacheMedia(msgId, { filePath, type: messageType, mimetype, size: buffer.length });
         
         antideleteState.stats.mediaCaptured++;
         
-        // Calculate storage and save to JSON immediately
+        // Recalculate disk usage (media files still live on disk)
         await calculateStorageSize();
         
         console.log(`📸 Antidelete: Saved ${messageType} media: ${filename} (${Math.round(buffer.length/1024)}KB)`);
@@ -549,29 +552,29 @@ async function storeIncomingMessage(message) {
             mimetype
         };
         
-        // Store in cache
+        // Store in in-memory Map AND SQLite (synchronous write, no event loop blocking)
         antideleteState.messageCache.set(msgId, messageData);
+        sqlCacheMessage(msgId, {
+            chatId: chatJid,
+            sender: senderJid,
+            pushName,
+            msgType: type,
+            content: text || '',
+            hasMedia,
+            timestamp
+        });
         antideleteState.stats.totalMessages++;
-        
-        //console.log(`📱 Antidelete: Stored message from ${pushName} (${type})`);
         
         // Download media if present (with delay to prevent memory spikes)
         if (hasMedia && mediaInfo) {
-            // Add random delay to prevent concurrent downloads
-            const delay = Math.random() * 2000 + 1000; // 1-3 seconds
+            const delay = Math.random() * 2000 + 1000;
             setTimeout(async () => {
                 try {
                     await downloadAndSaveMedia(msgId, mediaInfo.message, type, mediaInfo.mimetype);
-                    await saveData();
                 } catch (error) {
                     console.error('❌ Antidelete: Async media download failed:', error.message);
                 }
             }, delay);
-        }
-        
-        // Save to JSON periodically (but not too often)
-        if (antideleteState.messageCache.size % 10 === 0) {
-            await saveData();
         }
         
         return messageData;

@@ -30,6 +30,7 @@ A WhatsApp bot SaaS platform built on Node.js using the Baileys library (@whiske
   - `mongoAuthState.js` — Baileys auth provider backed by MongoDB
   - `sessionManager.js` — Session lifecycle (active/inactive/pairing/error)
   - `userSettings.js` — CRUD helpers for per-user settings
+  - `localCache.js` — SQLite in-memory cache (antidelete messages, media metadata, rate limits, viewonce log)
   - `songApi.js` — Music API wrapper (apis.xwolf.space)
   - `botname.js` — Bot name resolver
 
@@ -60,6 +61,21 @@ When `index.js` starts with `PHONE=xxx`:
 2. Loads `UserSettings` from MongoDB (prefix, botName, mode, autoRead, etc.)
 3. Applies them to `process.env` and `global` for that process
 4. Commands that change settings (`.setbotname`, `.antidelete`, etc.) write back to MongoDB
+
+## Database Strategy
+Two-tier storage to avoid disk bloat and MongoDB Atlas rate limits:
+
+| What | Where | Why |
+|------|-------|-----|
+| Session creds/keys | MongoDB Atlas | Must survive restarts, cloud-accessible |
+| Per-user settings | MongoDB Atlas | Persistent config across restarts |
+| Antidelete message cache | SQLite (`:memory:`) | High-frequency writes, transient per-session |
+| Media file metadata | SQLite (`:memory:`) | Fast lookups, no disk bloat |
+| Rate limit counters | SQLite (`:memory:`) | Per-minute windows, pure speed |
+| View-once history | SQLite (`:memory:`) | Ephemeral, session-local |
+| Media files themselves | `/data/antidelete/media/` | Written to disk, auto-cleaned after `maxAgeHours` |
+
+SQLite is in-memory (`:memory:`) — no ephemeral Heroku disk issues, each bot process has its own isolated DB, no storage accumulation across restarts.
 
 ## Environment Variables / Secrets
 - `MONGODB_URI` — MongoDB Atlas connection string
