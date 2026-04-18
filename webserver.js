@@ -216,14 +216,11 @@ app.get('/admin/stats', adminAuth, async (req, res) => {
 // DELETE /admin/session/:phone — force disconnect + wipe session + stop process
 app.delete('/admin/session/:phone', adminAuth, async (req, res) => {
     const { phone } = req.params;
-    stopBotForPhone(phone); // stop running process if any
-    const deleted = await deleteSession(phone);
-    if (deleted) {
-        broadcastSse({ event: 'session_deleted', phone });
-        res.json({ success: true, message: `Session for ${phone} deleted and process stopped` });
-    } else {
-        res.status(404).json({ success: false, error: `Session for ${phone} not found` });
-    }
+    stopBotForPhone(phone);   // kill running process
+    wipePairDir(phone);       // wipe local auth credentials so bot can't reconnect
+    await deleteSession(phone); // remove from MongoDB
+    broadcastSse({ event: 'session_deleted', phone });
+    res.json({ success: true, message: `Session for ${phone} deleted and process stopped` });
 });
 
 // GET /admin/processes — show currently running bot processes
