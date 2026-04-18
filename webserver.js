@@ -246,6 +246,39 @@ async function startPairing(phone) {
                 console.log('[WebServer] WhatsApp connected!');
                 botStatus = 'connected';
                 broadcastSse({ event: 'connected_success', message: 'WhatsApp linked! Launching bot...' });
+
+                // Send success DM to the paired number
+                try {
+                    const ownerJid = sock.user.id;
+                    const successMsg =
+`✅ *WOLFBOT CONNECTED SUCCESSFULLY!*
+
+🐺 *Welcome to Silent Wolf Bot!*
+
+📋 *Connection Details:*
+├─ Number: +${phone}
+├─ JID: ${ownerJid}
+├─ Auth Method: Pairing Code
+└─ Time: ${new Date().toLocaleTimeString()}
+
+⚡ *Active Features:*
+├─ Anti-ViewOnce: ✅ ENABLED
+├─ Member Detection: ✅ ENABLED
+├─ Welcome System: ✅ ENABLED
+├─ Rate Limit Protection: ✅ ENABLED
+└─ Auto-Join: ✅ ENABLED
+
+🎉 *Your bot is now fully operational!*
+Try sending *.ping* to verify it's working.
+
+_Powered by Silent Wolf Bot v1.1.3_`;
+
+                    await sock.sendMessage(ownerJid, { text: successMsg });
+                    console.log('[WebServer] Success DM sent to owner.');
+                } catch (dmErr) {
+                    console.warn('[WebServer] Could not send success DM:', dmErr.message);
+                }
+
                 activePairSocket = null;
                 setTimeout(() => launchBot(), 2000);
             }
