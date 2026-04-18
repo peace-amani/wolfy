@@ -111,10 +111,48 @@ function stopBotForPhone(phone) {
     return true;
 }
 
+// Restart a single bot — stop then relaunch after a short delay
+function restartBotForPhone(phone, delayMs = 3000) {
+    stopBotForPhone(phone);
+    broadcastSse({ event: 'restarting', phone, message: 'Bot restarting for update...' });
+    setTimeout(() => launchBotForPhone(phone), delayMs);
+    console.log(`[WebServer] Restart scheduled for ${phone} in ${delayMs}ms`);
+}
+
+// Restart every running bot — used for global updates and scheduled restarts
+function restartAllBots(delayMs = 3000) {
+    const phones = Array.from(botProcesses.keys());
+    console.log(`[WebServer] Restarting ${phones.length} bot(s)...`);
+    for (const phone of phones) {
+        restartBotForPhone(phone, delayMs);
+        delayMs += 2000; // stagger restarts to avoid MongoDB connection spikes
+    }
+    return phones;
+}
+
 // Legacy stub: kept so any old callers don't crash, but does nothing
 function launchBot() {
     console.warn('[WebServer] launchBot() called without phone — use launchBotForPhone(phone)');
 }
+
+// ====== SCHEDULED AUTO-UPDATE (every 24h at 3:00 AM) ======
+function scheduleAutoRestart() {
+    const now = new Date();
+    const next3am = new Date(now);
+    next3am.setHours(3, 0, 0, 0);
+    if (next3am <= now) next3am.setDate(next3am.getDate() + 1);
+    const msUntil3am = next3am - now;
+    console.log(`[WebServer] Auto-restart scheduled for ${next3am.toISOString()} (in ${Math.round(msUntil3am / 60000)} min)`);
+    setTimeout(() => {
+        console.log('[WebServer] Running scheduled 24h auto-restart...');
+        restartAllBots(3000);
+        setInterval(() => {
+            console.log('[WebServer] Running scheduled 24h auto-restart...');
+            restartAllBots(3000);
+        }, 24 * 60 * 60 * 1000);
+    }, msUntil3am);
+}
+scheduleAutoRestart();
 
 // ====== SSE BROADCAST ======
 function broadcastSse(data) {
@@ -268,6 +306,81 @@ app.post('/stop', adminAuth, (req, res) => {
     if (!phone) return res.json({ success: false, error: 'phone is required' });
     const stopped = stopBotForPhone(phone);
     res.json({ success: stopped, message: stopped ? `Bot for ${phone} stopped.` : `No bot running for ${phone}.` });
+});
+
+// Restart a single bot — called from inside the bot process itself for self-update
+// Only accepts requests from localhost (127.0.0.1 or ::1)
+app.post('/restart', (req, res) => {
+    const ip = req.ip || req.connection?.remoteAddress || '';
+    const isLocal = ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+    if (!isLocal) return res.status(403).json({ success: false, error: 'Localhost only' });
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ success: false, error: 'phone is required' });
+    if (!botProcesses.has(phone)) return res.json({ success: false, error: `No running bot for ${phone}` });
+    restartBotForPhone(phone, 3000);
+    res.json({ success: true, message: `Restart scheduled for ${phone}` });
+});
+
+// Restart all running bots — admin only
+app.post('/admin/restart-all', adminAuth, (req, res) => {
+    const phones = restartAllBots(3000);
+    broadcastSse({ event: 'restart_all', count: phones.length });
+    res.json({ success: true, restarted: phones.length, phones });
+});
+
+// Update all bots — checks GitHub for latest commit, then restarts all
+app.post('/admin/update-all', adminAuth, async (req, res) => {
+    try {
+        const ghRes = await fetch(
+            `https://api.github.com/repos/${process.env.GITHUB_REPO || '777Wolf-dot/wolf-bot'}/commits/main`,
+            { headers: { 'User-Agent': 'WolfyAdmin/1.0', 'Accept': 'application/vnd.github.v3+json' } }
+        );
+        let latestCommit = null;
+        if (ghRes.ok) {
+            const ghData = await ghRes.json();
+            latestCommit = {
+                sha: ghData.sha?.slice(0, 7),
+                message: ghData.commit?.message?.split('\n')[0] || '',
+                date: ghData.commit?.author?.date || ''
+            };
+        }
+        const phones = restartAllBots(3000);
+        broadcastSse({ event: 'update_all', count: phones.length, latestCommit });
+        res.json({ success: true, restarted: phones.length, phones, latestCommit });
+    } catch (err) {
+        const phones = restartAllBots(3000);
+        res.json({ success: true, restarted: phones.length, phones, note: 'GitHub check failed, restarted anyway' });
+    }
+});
+
+// Version info — returns latest GitHub commit + running process info
+app.get('/admin/version', adminAuth, async (req, res) => {
+    try {
+        const ghRes = await fetch(
+            `https://api.github.com/repos/${process.env.GITHUB_REPO || '777Wolf-dot/wolf-bot'}/commits/main`,
+            { headers: { 'User-Agent': 'WolfyAdmin/1.0', 'Accept': 'application/vnd.github.v3+json' } }
+        );
+        let latestCommit = null;
+        if (ghRes.ok) {
+            const ghData = await ghRes.json();
+            latestCommit = {
+                sha: ghData.sha?.slice(0, 7),
+                fullSha: ghData.sha,
+                message: ghData.commit?.message?.split('\n')[0] || '',
+                date: ghData.commit?.author?.date || '',
+                author: ghData.commit?.author?.name || ''
+            };
+        }
+        res.json({
+            success: true,
+            latestCommit,
+            runningProcesses: botProcesses.size,
+            serverUptime: Math.floor(process.uptime()),
+            deployedSha: process.env.HEROKU_SLUG_COMMIT?.slice(0, 7) || null
+        });
+    } catch (err) {
+        res.status(502).json({ success: false, error: err.message });
+    }
 });
 
 // Clear session from DB + stop bot
