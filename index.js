@@ -316,7 +316,7 @@ const DEFAULT_ANTIVIEWONCE_CONFIG = {
 };
 
 const SESSION_DIR = './session';
-const VERSION = '1.1.3'; // Updated version for prefixless & new member detection & anti-viewonce
+const VERSION = '1.0.0';
 const DEFAULT_PREFIX = process.env.PREFIX || '.';
 const OWNER_FILE = './owner.json';
 const PREFIX_CONFIG_FILE = './prefix_config.json';
@@ -3537,6 +3537,7 @@ async function startBot(loginMode = 'pair', loginData = null) {
                         const successMessage =
                             `╭────────────────\n` +
                             `| ✅ ${getBotName()} Connected\n` +
+                            `| Version: ${VERSION}\n` +
                             `| Prefix: [ ${currentPrefix} ]\n` +
                             `| Owner: ${ownerName}\n` +
                             `| Mode: ${botMode}\n` +
@@ -3544,7 +3545,7 @@ async function startBot(loginMode = 'pair', loginData = null) {
                             `Follow me on github at : github.com/sil3nt-wolf`;
 
                         await sock.sendMessage(ownerJid, { text: successMessage });
-                        UltraCleanLogger.success('✅ Success message sent to owner');
+                        UltraCleanLogger.success(`✅ ${getBotName()} v${VERSION} connected successfully`);
                     } catch (error) {
                         UltraCleanLogger.error('Could not send success message:', error.message);
                     }
