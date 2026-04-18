@@ -4296,9 +4296,7 @@ case 'av':
                     const pingStart2 = performance.now();
                     await Promise.resolve();
                     const pingMs = Math.max(10, Math.round(performance.now() - pingStart2) + 50 + Math.floor(Math.random() * 20));
-                    const filled = Math.round(Math.max(0, Math.min(10, 10 - (pingMs / 100))));
-                    const bar = '█'.repeat(filled) + '▒'.repeat(10 - filled);
-                    const text = `╭─⌈ ⚡ *${BOT_NAME}* ⌋\n│ ${pingMs}ms [${bar}]\n╰⊷ *${BOT_NAME}*`;
+                    const text = `*${BOT_NAME}*\nSpeed: ${pingMs}ms`;
                     const fkontak = {
                         key: { participant: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: BOT_NAME },
                         messageTimestamp: Math.floor(Date.now() / 1000),

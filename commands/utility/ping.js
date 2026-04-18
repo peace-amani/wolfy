@@ -15,13 +15,7 @@ export default {
       await Promise.resolve();
       const ms = Math.max(10, Math.round(performance.now() - start) + 50 + Math.floor(Math.random() * 20));
 
-      const filled = Math.round(Math.max(0, Math.min(10, 10 - (ms / 100))));
-      const bar    = '█'.repeat(filled) + '▒'.repeat(10 - filled);
-
-      const text =
-        `╭─⌈ ⚡ *${botName}* ⌋\n` +
-        `│ ${ms}ms [${bar}]\n` +
-        `╰⊷ *${botName}*`;
+      const text = `*${botName}*\nSpeed: ${ms}ms`;
 
       const fkontak = {
         key: {
