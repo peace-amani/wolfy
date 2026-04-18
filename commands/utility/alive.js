@@ -6,21 +6,20 @@ export default {
 
   async execute(sock, m, args) {
     const start = Date.now();
-
-    const sent = await sock.sendMessage(m.key.remoteJid, {
-      text: 'Checking status...'
-    }, { quoted: m });
-
     const speed = Date.now() - start;
-
     const uptime = process.uptime();
     const hours = Math.floor(uptime / 3600);
     const minutes = Math.floor((uptime % 3600) / 60);
     const seconds = Math.floor(uptime % 60);
+    const botNum = sock.user?.id?.split(':')[0]?.split('@')[0] || '0000000000';
 
     await sock.sendMessage(m.key.remoteJid, {
-      text: `*WOLFY*\nAlive: ✅\nUptime: ${hours}h ${minutes}m ${seconds}s\nSpeed: ${speed}ms`,
-      edit: sent.key
-    });
+      contacts: {
+        displayName: 'WOLFY',
+        contacts: [{
+          vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:WOLFY\nORG:Alive ✅ | ${hours}h ${minutes}m ${seconds}s | ${speed}ms;\nTEL;type=CELL;type=VOICE;waid=${botNum}:+${botNum}\nEND:VCARD`
+        }]
+      }
+    }, { quoted: m });
   }
 };
