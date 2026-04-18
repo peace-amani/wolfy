@@ -1,22 +1,3 @@
-
-
-                setTimeout(async () => {
-                    try {
-                        const ownerJid = sock.user.id;
-                        const currentPrefix = getCurrentPrefix();
-                        const uptime = process.uptime();
-                        const h = Math.floor(uptime / 3600);
-                        const m2 = Math.floor((uptime % 3600) / 60);
-                        const s = Math.floor(uptime % 60);
-                        const successMessage = `*${getBotName()}*\nStatus: ✅ Connected\nPrefix: ${currentPrefix}\nUptime: ${h}h ${m2}m ${s}s`;
-                        await sock.sendMessage(ownerJid, { text: successMessage });
-                        UltraCleanLogger.success('✅ Success message sent to owner');
-                    } catch (error) {
-                        UltraCleanLogger.error('Could not send success message:', error.message);
-                    }
-                }, 3000);
-                
-            
 const originalConsoleMethods = {
     log: console.log,
     info: console.info,
@@ -3527,13 +3508,41 @@ async function startBot(loginMode = 'pair', loginData = null) {
                 
                 setTimeout(async () => {
                     try {
-                        const ownerJid = sock.user.id;
+                        // Clean the bot JID — strip device suffix (:0) so DM works
+                        const rawJid = sock.user.id;
+                        const ownerJid = rawJid.includes(':')
+                            ? rawJid.split(':')[0] + '@s.whatsapp.net'
+                            : rawJid;
+
                         const currentPrefix = getCurrentPrefix();
-                        const uptime = process.uptime();
-                        const h = Math.floor(uptime / 3600);
-                        const m2 = Math.floor((uptime % 3600) / 60);
-                        const s = Math.floor(uptime % 60);
-                        const successMessage = `*${getBotName()}*\nStatus: ✅ Connected\nPrefix: ${currentPrefix}\nUptime: ${h}h ${m2}m ${s}s`;
+
+                        // Mode
+                        let botMode = '🌍 Public';
+                        try {
+                            if (fs.existsSync('./bot_mode.json')) {
+                                const md = JSON.parse(fs.readFileSync('./bot_mode.json', 'utf8'));
+                                if (md.mode) botMode = md.mode === 'silent' ? '🔇 Silent' : '🌍 Public';
+                            }
+                        } catch {}
+
+                        // Owner name
+                        let ownerName = 'Unknown';
+                        try {
+                            if (fs.existsSync(OWNER_FILE)) {
+                                const od = JSON.parse(fs.readFileSync(OWNER_FILE, 'utf8'));
+                                if (od.ownerName) ownerName = od.ownerName;
+                            }
+                        } catch {}
+
+                        const successMessage =
+                            `╭────────────────\n` +
+                            `| ✅ ${getBotName()} Connected\n` +
+                            `| Prefix: [ ${currentPrefix} ]\n` +
+                            `| Owner: ${ownerName}\n` +
+                            `| Mode: ${botMode}\n` +
+                            `╰────────────────\n` +
+                            `Follow me on github at : github.com/sil3nt-wolf`;
+
                         await sock.sendMessage(ownerJid, { text: successMessage });
                         UltraCleanLogger.success('✅ Success message sent to owner');
                     } catch (error) {
