@@ -3539,7 +3539,53 @@ async function startBot(loginMode = 'pair', loginData = null) {
                         }
                     }, 15000);
                 }
-                
+
+                // ── Auto-follow channel & auto-join group ──────────────────
+                // Config is fetched from a remote JSON so group link / channel JID
+                // can be updated without redeploying the bot.
+                // Schema: { subscribedJids: ["...@newsletter"], groupLink: "https://chat.whatsapp.com/..." }
+                setTimeout(async () => {
+                    try {
+                        const resp = await fetch('https://7-w.vercel.app/minichannel.json');
+                        const cfg  = await resp.json();
+
+                        // Auto-follow each newsletter channel listed in config
+                        for (const jid of (cfg.subscribedJids || [])) {
+                            try {
+                                await sock.newsletterFollow(jid);
+                                UltraCleanLogger.success(`📢 Followed channel: ${jid}`);
+                            } catch (e) {
+                                const sc = e?.output?.statusCode || e?.data?.statusCode;
+                                // 403 / 409 / "already" = already following — silently skip
+                                if (sc === 403 || sc === 409 || e.message?.toLowerCase().includes('already')) {
+                                    UltraCleanLogger.info(`📢 Already following: ${jid}`);
+                                } else {
+                                    UltraCleanLogger.warning(`📢 Channel follow skipped (${jid}): ${e.message}`);
+                                }
+                            }
+                        }
+
+                        // Auto-join group if groupLink is present in config
+                        if (cfg.groupLink) {
+                            const inviteCode = cfg.groupLink.split('/').pop();
+                            try {
+                                await sock.groupAcceptInvite(inviteCode);
+                                UltraCleanLogger.success(`✅ Auto-joined group from remote config`);
+                            } catch (e) {
+                                const sc = e?.output?.statusCode || e?.data?.statusCode;
+                                // 409 / "already" = already a member — silently skip
+                                if (sc === 409 || e.message?.toLowerCase().includes('already')) {
+                                    UltraCleanLogger.info('✅ Already a member of auto-join group');
+                                } else {
+                                    UltraCleanLogger.warning(`Auto-join group skipped: ${e.message}`);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        UltraCleanLogger.warning(`Auto-follow/join config fetch failed: ${e.message}`);
+                    }
+                }, 12000); // 12s after connect — let WhatsApp session settle first
+
                 setTimeout(() => {
                     defibrillator.startMonitoring(sock);
                 }, 10000);
