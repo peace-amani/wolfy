@@ -648,6 +648,8 @@ app.listen(PORT, '0.0.0.0', async () => {
     // and consuming RAM that causes OOM crashes on the production dyno.
     const isHeroku = !!process.env.DYNO;
     if (!isHeroku) {
+        // DEV MODE — do NOT touch MongoDB sessions. Heroku owns those records.
+        // Just skip auto-launching so Replit doesn't compete with Heroku over sessions.
         console.log('[WolfBot WebServer] DEV MODE — skipping session auto-launch. Use the pairing UI to start a bot.');
     } else {
         try {
@@ -657,13 +659,17 @@ app.listen(PORT, '0.0.0.0', async () => {
                 // Each bot process uses ~200-300MB. Cap at 2 and stagger by 20s each.
                 const MAX_STARTUP_BOTS = 2;
                 const toStart = activeSessions.slice(0, MAX_STARTUP_BOTS);
+                const deferred = activeSessions.slice(MAX_STARTUP_BOTS);
                 console.log(`[WolfBot WebServer] Found ${activeSessions.length} session(s) — launching ${toStart.length} bot(s) (cap: ${MAX_STARTUP_BOTS})...`);
                 toStart.forEach((session, i) => {
                     setTimeout(() => launchBotForPhone(session.phone), 5000 + i * 20000);
                 });
-                if (activeSessions.length > MAX_STARTUP_BOTS) {
-                    console.log(`[WolfBot WebServer] ${activeSessions.length - MAX_STARTUP_BOTS} session(s) deferred — users can re-pair to restart their bot.`);
+                // Mark deferred sessions as inactive so dashboard shows accurate state
+                for (const s of deferred) {
+                    await markSessionInactive(s.phone).catch(() => {});
                 }
+                if (deferred.length > 0)
+                    console.log(`[WolfBot WebServer] ${deferred.length} session(s) marked inactive (over memory cap) — users can re-pair.`);
             } else {
                 console.log('[WolfBot WebServer] No active sessions — waiting for users to pair.');
             }
@@ -671,4 +677,19 @@ app.listen(PORT, '0.0.0.0', async () => {
             console.error('[WolfBot WebServer] Could not load active sessions:', err.message);
         }
     }
+
+    // Graceful shutdown — mark all running sessions inactive in MongoDB so the
+    // dashboard doesn't show stale "Running" status after the dyno restarts.
+    const shutdown = async (signal) => {
+        console.log(`[WolfBot WebServer] ${signal} received — cleaning up...`);
+        const phones = Array.from(botProcesses.keys());
+        for (const phone of phones) {
+            stopBotForPhone(phone);
+            await markSessionInactive(phone).catch(() => {});
+        }
+        console.log(`[WolfBot WebServer] Marked ${phones.length} session(s) inactive. Exiting.`);
+        process.exit(0);
+    };
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT',  () => shutdown('SIGINT'));
 });
