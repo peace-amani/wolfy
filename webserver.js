@@ -3,6 +3,18 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
+import { connectDB, getConnectionStatus } from './lib/database.js';
+import {
+  markSessionActive,
+  markSessionInactive,
+  markSessionPairing,
+  deleteSession,
+  getAllSessions,
+  getActiveSessions,
+  getSessionStats,
+  registerSession,
+  unregisterSession
+} from './lib/sessionManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,6 +31,7 @@ let activePairSocket = null;
 let botProcess = null;
 let pairingSseClients = [];
 let botStatus = 'idle'; // idle | pairing | connected
+let currentPhone = null; // phone number of the active session
 
 // ====== SESSION UTILITIES ======
 function parseSessionId(sessionString) {
@@ -109,6 +122,10 @@ function launchBot() {
         botProcess = null;
         broadcastSse({ event: 'bot_exited', code });
 
+        if (currentPhone) {
+            markSessionInactive(currentPhone).catch(() => {});
+        }
+
         // Auto-restart if session still exists (not a deliberate logout)
         if (code !== 0 && code !== 130 && code !== 143 && hasExistingSession()) {
             console.log('[WebServer] Bot crashed — auto-restarting in 8s...');
@@ -130,6 +147,60 @@ function broadcastSse(data) {
         try { res.write(payload); return true; } catch { return false; }
     });
 }
+
+// ====== ADMIN AUTH MIDDLEWARE ======
+function adminAuth(req, res, next) {
+    const key = req.headers['x-admin-key'] || req.query.key;
+    if (!key || key !== process.env.ADMIN_API_KEY) {
+        return res.status(401).json({ error: 'Unauthorized — invalid or missing admin key' });
+    }
+    next();
+}
+
+// ====== ADMIN ROUTES ======
+
+// GET /admin/sessions — all sessions (active + inactive + pairing)
+app.get('/admin/sessions', adminAuth, async (req, res) => {
+    const sessions = await getAllSessions();
+    res.json({ success: true, count: sessions.length, sessions });
+});
+
+// GET /admin/sessions/active — only active
+app.get('/admin/sessions/active', adminAuth, async (req, res) => {
+    const sessions = await getActiveSessions();
+    res.json({ success: true, count: sessions.length, sessions });
+});
+
+// GET /admin/stats — overall stats
+app.get('/admin/stats', adminAuth, async (req, res) => {
+    const stats = await getSessionStats();
+    const db = getConnectionStatus();
+    res.json({
+        success: true,
+        stats,
+        db,
+        uptime: Math.floor(process.uptime()),
+        version: process.env.npm_package_version || '1.0.0',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// DELETE /admin/session/:phone — force disconnect + wipe session
+app.delete('/admin/session/:phone', adminAuth, async (req, res) => {
+    const { phone } = req.params;
+    const deleted = await deleteSession(phone);
+    if (deleted) {
+        broadcastSse({ event: 'session_deleted', phone });
+        res.json({ success: true, message: `Session for ${phone} deleted` });
+    } else {
+        res.status(404).json({ success: false, error: `Session for ${phone} not found` });
+    }
+});
+
+// GET /admin/db — database connection status
+app.get('/admin/db', adminAuth, (req, res) => {
+    res.json({ success: true, db: getConnectionStatus() });
+});
 
 // ====== ROUTES ======
 
@@ -242,6 +313,7 @@ async function startPairing(phone, isReconnect = false) {
         if (!isReconnect) {
             botStatus = 'pairing';
             broadcastSse({ event: 'pairing_started', phone });
+            await markSessionPairing(phone).catch(() => {});
         }
 
         const { default: makeWASocket } = await import('@whiskeysockets/baileys');
@@ -301,7 +373,9 @@ async function startPairing(phone, isReconnect = false) {
             if (connection === 'open') {
                 console.log('[WebServer] WhatsApp connected!');
                 botStatus = 'connected';
+                currentPhone = phone;
                 broadcastSse({ event: 'connected_success', message: 'WhatsApp linked! Bot is starting...' });
+                await markSessionActive(phone).catch(() => {});
 
                 // Send success DM, wait for delivery, then cleanly close socket before launching bot
                 const ownerJid = sock.user.id;
@@ -345,6 +419,7 @@ async function startPairing(phone, isReconnect = false) {
                 if (statusCode === 401 || statusCode === 403) {
                     botStatus = 'idle';
                     activePairSocket = null;
+                    await markSessionInactive(phone).catch(() => {});
                     broadcastSse({ event: 'connection_closed', message: 'Session rejected by WhatsApp. Click "Clear Session" and pair again.' });
                     return;
                 }
@@ -352,6 +427,7 @@ async function startPairing(phone, isReconnect = false) {
                 // Any other disconnect — surface the error
                 botStatus = 'idle';
                 activePairSocket = null;
+                await markSessionInactive(phone).catch(() => {});
                 broadcastSse({ event: 'connection_closed', message: `Connection dropped (code ${statusCode}). Please try again.` });
             }
         });
@@ -848,9 +924,13 @@ document.getElementById('phoneInput').addEventListener('input', (e) => {
 }
 
 // ====== START SERVER ======
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
     console.log(`[WolfBot WebServer] Running on http://0.0.0.0:${PORT}`);
     console.log(`[WolfBot WebServer] Open the preview panel to pair your WhatsApp`);
+
+    // Connect to MongoDB (non-blocking — bot still works without it)
+    await connectDB();
+
     if (hasExistingSession()) {
         console.log('[WolfBot WebServer] Existing session found — launching bot automatically...');
         setTimeout(() => launchBot(), 2000);
