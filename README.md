@@ -6,7 +6,7 @@
 
 <br/>
 
-<img src="https://i.ibb.co/HDCwvyhT/wolfbot.jpg" width="480" style="border-radius:20px; box-shadow: 0 0 40px #00ff00;" alt="WOLFY Bot Menu"/>
+<img src="https://i.ibb.co/Y4344hCQ/upload-1774693829195-1eaa41ad-jpg.jpg" width="480" style="border-radius:20px; box-shadow: 0 0 40px #00ff00;" alt="WOLFY Bot Menu"/>
 
 <br/><br/>
 

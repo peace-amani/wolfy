@@ -397,18 +397,18 @@ export default {
 
       const finalCaption = createReadMoreEffect(infoSection, commandsText);
 
-      // Image
+      // Image — local file first, fallback to hosted URL
+      const MENU_IMAGE_URL = "https://i.ibb.co/Y4344hCQ/upload-1774693829195-1eaa41ad-jpg.jpg";
       const imgPath1 = path.join(__dirname, "media", "wolfbot.jpg");
       const imgPath2 = path.join(__dirname, "../media/wolfbot.jpg");
       const imagePath = fs.existsSync(imgPath1) ? imgPath1 : fs.existsSync(imgPath2) ? imgPath2 : null;
 
-      if (!imagePath) {
-        await sock.sendMessage(jid, { text: finalCaption }, { quoted: m });
-        return;
+      if (imagePath) {
+        const buffer = fs.readFileSync(imagePath);
+        await sock.sendMessage(jid, { image: buffer, caption: finalCaption, mimetype: "image/jpeg" }, { quoted: m });
+      } else {
+        await sock.sendMessage(jid, { image: { url: MENU_IMAGE_URL }, caption: finalCaption, mimetype: "image/jpeg" }, { quoted: m });
       }
-
-      const buffer = fs.readFileSync(imagePath);
-      await sock.sendMessage(jid, { image: buffer, caption: finalCaption, mimetype: "image/jpeg" }, { quoted: m });
 
     } catch (err) {
       console.error("[menu] Error:", err);
