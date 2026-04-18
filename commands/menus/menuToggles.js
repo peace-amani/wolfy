@@ -372,15 +372,8 @@ function saveConfig() {
 }
 
 // Function to get current menu style dynamically
-export async function getCurrentMenuStyle() {
-  try {
-    // Import the menustyle module to get the current style
-    const menustyleModule = await import('./menustyle.js');
-    return menustyleModule.getCurrentMenuStyle();
-  } catch (error) {
-    console.error("Error getting current menu style:", error);
-    return 1; // Default to style 1 if there's an error
-  }
+export function getCurrentMenuStyle() {
+  return 7;
 }
 
 export function setLastMenu(menuStyle) {

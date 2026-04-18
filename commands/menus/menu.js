@@ -2,8 +2,6 @@ import os from "os";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { getCurrentMenuStyle } from "./menustyle.js";
-import { setLastMenu } from "../menus/menuToggles.js";
 import { getBotName } from "../../lib/botname.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -56,7 +54,6 @@ export default {
   description: "Shows bot info panel",
   async execute(sock, m, args, PREFIX) {
     const jid = m.key.remoteJid;
-    setLastMenu(7);
 
     try {
       const botName   = getBotName();
