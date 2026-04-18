@@ -1,4 +1,6 @@
 // File: ./commands/owner/setprefix.js
+import { updateSettings } from '../../lib/userSettings.js';
+
 export default {
     name: 'setprefix',
     alias: ['prefix', 'setpre', 'changeprefix'],
@@ -46,21 +48,26 @@ Usage:
         try {
             const oldPrefix = getCurrentPrefix();
             const oldIsPrefixless = isPrefixless;
-            
+            const phone = process.env.PHONE || global.SESSION_PHONE || null;
+
             // Update prefix immediately in memory AND save to files
             const updateResult = updatePrefix(newPrefix);
             
             if (!updateResult.success) {
                 throw new Error('Failed to update prefix');
             }
+
+            // Persist to MongoDB if in multi-session mode
+            if (phone) {
+                const prefixVal = isNone ? '.' : newPrefix;
+                await updateSettings(phone, { prefix: prefixVal }).catch(() => {});
+            }
             
             if (isNone) {
-                // Prefixless mode enabled
                 await sock.sendMessage(chatId, {
                     text: `✅ *PREFIXLESS MODE ENABLED*\n\nOld prefix: "${oldIsPrefixless ? 'none' : oldPrefix}"\nNew mode: No prefix required!\n`
                 }, { quoted: msg });
             } else {
-                // Regular prefix change
                 await sock.sendMessage(chatId, {
                     text: `✅ *PREFIX UPDATED*\nOld prefix: "${oldIsPrefixless ? 'none (prefixless)' : oldPrefix}"\nNew prefix: "*${newPrefix}"*\n`
                 }, { quoted: msg });

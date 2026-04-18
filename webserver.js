@@ -15,6 +15,7 @@ import {
   registerSession,
   unregisterSession
 } from './lib/sessionManager.js';
+import { initSettings } from './lib/userSettings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,10 +29,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // Track active pairing socket
 let activePairSocket = null;
-let botProcess = null;
 let pairingSseClients = [];
-let botStatus = 'idle'; // idle | pairing | connected
-let currentPhone = null; // phone number of the active session
+let botStatus = 'idle'; // idle | pairing | connected (global indicator)
+
+// Multi-session: one process per phone
+const botProcesses = new Map(); // phone → { process, startedAt }
 
 // ====== SESSION UTILITIES ======
 function parseSessionId(sessionString) {
@@ -68,76 +70,50 @@ function hasExistingSession() {
 }
 
 // ====== BOT PROCESS MANAGEMENT ======
-function buildSessionEnv() {
-    // Read creds.json and encode as WOLF-BOT: session ID so index.js
-    // can authenticate non-interactively using option 3 (Session ID mode).
-    try {
-        const credsPath = path.join(SESSION_DIR, 'creds.json');
-        if (!fs.existsSync(credsPath)) return {};
-        const raw = fs.readFileSync(credsPath, 'utf8');
-        const b64 = Buffer.from(raw).toString('base64');
-        return { SESSION_ID: `WOLF-BOT:${b64}` };
-    } catch {
-        return {};
+
+function launchBotForPhone(phone) {
+    if (botProcesses.has(phone)) {
+        console.log(`[WebServer] Bot for ${phone} already running — skipping`);
+        return;
     }
+    console.log(`[WebServer] Launching bot for ${phone} (mongoAuthState)...`);
+
+    const proc = spawn('node', ['index.js'], {
+        stdio: ['ignore', 'inherit', 'inherit'],
+        env: { ...process.env, PHONE: phone }
+    });
+
+    botProcesses.set(phone, { process: proc, startedAt: new Date() });
+    botStatus = 'connected';
+
+    proc.on('exit', (code) => {
+        console.log(`[WebServer] Bot ${phone} exited with code ${code}`);
+        botProcesses.delete(phone);
+        broadcastSse({ event: 'bot_exited', phone, code });
+        markSessionInactive(phone).catch(() => {});
+
+        if (botProcesses.size === 0) botStatus = 'idle';
+
+        // Auto-restart on crash, not on deliberate SIGTERM/SIGINT
+        if (code !== 0 && code !== 130 && code !== 143) {
+            console.log(`[WebServer] Bot ${phone} crashed — auto-restarting in 8s...`);
+            broadcastSse({ event: 'reconnecting', phone, message: 'Bot restarting...' });
+            setTimeout(() => launchBotForPhone(phone), 8000);
+        }
+    });
 }
 
+function stopBotForPhone(phone) {
+    const entry = botProcesses.get(phone);
+    if (!entry) return false;
+    try { entry.process.kill('SIGTERM'); } catch {}
+    botProcesses.delete(phone);
+    return true;
+}
+
+// Legacy stub: kept so any old callers don't crash, but does nothing
 function launchBot() {
-    if (botProcess) return;
-    console.log('[WebServer] Launching bot (index.js)...');
-
-    const sessionEnv = buildSessionEnv();
-    const hasSession = !!sessionEnv.SESSION_ID;
-
-    botProcess = spawn('node', ['index.js'], {
-        // pipe stdin so we can answer the login menu; inherit stdout/stderr
-        stdio: ['pipe', 'inherit', 'inherit'],
-        env: { ...process.env, ...sessionEnv }
-    });
-
-    // Automatically answer the LoginManager prompts:
-    //   "Choose option (1-3, default 1):" → "3" (Use Session ID)
-    //   "Use existing Session ID? (y/n, default y):" → "y"
-    // Stagger the writes: the second readline question is set up ~200ms after
-    // the first answer is processed, so we must wait before sending "y".
-    if (hasSession && botProcess.stdin) {
-        setTimeout(() => {
-            try {
-                botProcess.stdin.write('3\n');
-            } catch (e) {
-                console.warn('[WebServer] Could not write option to bot stdin:', e.message);
-            }
-            setTimeout(() => {
-                try {
-                    botProcess.stdin.write('y\n');
-                } catch (e) {
-                    console.warn('[WebServer] Could not write confirm to bot stdin:', e.message);
-                }
-            }, 800); // wait for sessionIdMode() to set up its readline question
-        }, 2500);
-    }
-
-    botProcess.on('exit', (code) => {
-        console.log(`[WebServer] Bot exited with code ${code}`);
-        botProcess = null;
-        broadcastSse({ event: 'bot_exited', code });
-
-        if (currentPhone) {
-            markSessionInactive(currentPhone).catch(() => {});
-        }
-
-        // Auto-restart if session still exists (not a deliberate logout)
-        if (code !== 0 && code !== 130 && code !== 143 && hasExistingSession()) {
-            console.log('[WebServer] Bot crashed — auto-restarting in 8s...');
-            botStatus = 'idle';
-            broadcastSse({ event: 'reconnecting', message: 'Bot restarting automatically...' });
-            setTimeout(() => launchBot(), 8000);
-        } else {
-            botStatus = 'idle';
-        }
-    });
-
-    botStatus = 'connected';
+    console.warn('[WebServer] launchBot() called without phone — use launchBotForPhone(phone)');
 }
 
 // ====== SSE BROADCAST ======
@@ -185,16 +161,27 @@ app.get('/admin/stats', adminAuth, async (req, res) => {
     });
 });
 
-// DELETE /admin/session/:phone — force disconnect + wipe session
+// DELETE /admin/session/:phone — force disconnect + wipe session + stop process
 app.delete('/admin/session/:phone', adminAuth, async (req, res) => {
     const { phone } = req.params;
+    stopBotForPhone(phone); // stop running process if any
     const deleted = await deleteSession(phone);
     if (deleted) {
         broadcastSse({ event: 'session_deleted', phone });
-        res.json({ success: true, message: `Session for ${phone} deleted` });
+        res.json({ success: true, message: `Session for ${phone} deleted and process stopped` });
     } else {
         res.status(404).json({ success: false, error: `Session for ${phone} not found` });
     }
+});
+
+// GET /admin/processes — show currently running bot processes
+app.get('/admin/processes', adminAuth, (req, res) => {
+    const procs = Array.from(botProcesses.entries()).map(([phone, entry]) => ({
+        phone,
+        startedAt: entry.startedAt,
+        pid: entry.process.pid
+    }));
+    res.json({ success: true, count: procs.length, processes: procs });
 });
 
 // GET /admin/db — database connection status
@@ -224,10 +211,14 @@ app.get('/events', (req, res) => {
 
 // Status check
 app.get('/status', (req, res) => {
+    const activeBots = Array.from(botProcesses.entries()).map(([phone, entry]) => ({
+        phone,
+        startedAt: entry.startedAt
+    }));
     res.json({
         botStatus,
-        hasSession: hasExistingSession(),
-        botRunning: !!botProcess
+        activeSessions: activeBots.length,
+        bots: activeBots
     });
 });
 
@@ -251,55 +242,32 @@ app.post('/pair', async (req, res) => {
     startPairing(cleanPhone);
 });
 
-// Connect via session ID
-app.post('/session', async (req, res) => {
-    const { sessionId } = req.body;
-    if (!sessionId || !sessionId.trim()) {
-        return res.json({ success: false, error: 'Session ID is required.' });
-    }
-
-    const parsed = parseSessionId(sessionId.trim());
-    if (!parsed) {
-        return res.json({ success: false, error: 'Invalid session ID format. Expected WOLF-BOT:{base64} or plain base64/JSON.' });
-    }
-
-    try {
-        saveSessionToDisk(parsed);
-        botStatus = 'connected';
-        broadcastSse({ event: 'session_saved', message: 'Session saved! Launching bot...' });
-        setTimeout(() => launchBot(), 1000);
-        res.json({ success: true, message: 'Session authenticated! Bot is launching...' });
-    } catch (err) {
-        res.json({ success: false, error: `Failed to save session: ${err.message}` });
-    }
-});
-
-// Launch bot manually (if session already exists)
+// Launch bot manually for a specific phone (admin use)
 app.post('/launch', (req, res) => {
-    if (!hasExistingSession()) {
-        return res.json({ success: false, error: 'No session found. Please pair first.' });
-    }
-    if (botProcess) {
-        return res.json({ success: false, error: 'Bot is already running.' });
-    }
-    launchBot();
-    res.json({ success: true, message: 'Bot launched!' });
+    const { phone } = req.body;
+    if (!phone) return res.json({ success: false, error: 'phone is required' });
+    if (botProcesses.has(phone)) return res.json({ success: false, error: `Bot for ${phone} is already running.` });
+    launchBotForPhone(phone);
+    res.json({ success: true, message: `Bot launched for ${phone}!` });
 });
 
-// Clear session
-app.post('/clear-session', (req, res) => {
+// Stop a specific bot session
+app.post('/stop', adminAuth, (req, res) => {
+    const { phone } = req.body;
+    if (!phone) return res.json({ success: false, error: 'phone is required' });
+    const stopped = stopBotForPhone(phone);
+    res.json({ success: stopped, message: stopped ? `Bot for ${phone} stopped.` : `No bot running for ${phone}.` });
+});
+
+// Clear session from DB + stop bot
+app.post('/clear-session', adminAuth, async (req, res) => {
     try {
-        if (fs.existsSync(SESSION_DIR)) {
-            fs.rmSync(SESSION_DIR, { recursive: true, force: true });
-        }
-        if (botProcess) {
-            botProcess.kill('SIGTERM');
-            botProcess = null;
-        }
-        botStatus = 'idle';
-        activePairSocket = null;
-        broadcastSse({ event: 'session_cleared' });
-        res.json({ success: true, message: 'Session cleared.' });
+        const { phone } = req.body;
+        if (!phone) return res.json({ success: false, error: 'phone is required' });
+        stopBotForPhone(phone);
+        await deleteSession(phone);
+        broadcastSse({ event: 'session_cleared', phone });
+        res.json({ success: true, message: `Session for ${phone} cleared.` });
     } catch (err) {
         res.json({ success: false, error: err.message });
     }
@@ -371,20 +339,20 @@ async function startPairing(phone, isReconnect = false) {
             }
 
             if (connection === 'open') {
-                console.log('[WebServer] WhatsApp connected!');
+                console.log(`[WebServer] WhatsApp connected for ${phone}!`);
                 botStatus = 'connected';
-                currentPhone = phone;
-                broadcastSse({ event: 'connected_success', message: 'WhatsApp linked! Bot is starting...' });
+                broadcastSse({ event: 'connected_success', phone, message: 'WhatsApp linked! Bot is starting...' });
                 await markSessionActive(phone).catch(() => {});
+
+                // Create default settings for this user (no-op if already exists)
+                await initSettings(phone).catch(() => {});
 
                 // Send success DM, wait for delivery, then cleanly close socket before launching bot
                 const ownerJid = sock.user.id;
                 try {
-                    const successMsg = `*WOLFY*\nStatus: ✅ Connected\nPrefix: .\nBot is ready!`;
-
+                    const successMsg = `*WOLFY* ✅\nPhone: ${phone}\nStatus: Connected\nPrefix: .\nAll your settings are saved privately in the cloud — nobody else can see or change them.`;
                     await sock.sendMessage(ownerJid, { text: successMsg });
                     console.log('[WebServer] Success DM sent to owner.');
-                    // Give WhatsApp time to actually deliver the message
                     await new Promise(r => setTimeout(r, 4000));
                 } catch (dmErr) {
                     console.warn('[WebServer] Could not send success DM:', dmErr.message);
@@ -395,8 +363,8 @@ async function startPairing(phone, isReconnect = false) {
                 try { sock.ws?.close(); } catch {}
                 activePairSocket = null;
 
-                // Launch index.js after socket is fully closed
-                setTimeout(() => launchBot(), 1500);
+                // Launch dedicated bot process for this phone
+                setTimeout(() => launchBotForPhone(phone), 1500);
             }
 
             if (connection === 'close') {
@@ -928,11 +896,21 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.log(`[WolfBot WebServer] Running on http://0.0.0.0:${PORT}`);
     console.log(`[WolfBot WebServer] Open the preview panel to pair your WhatsApp`);
 
-    // Connect to MongoDB (non-blocking — bot still works without it)
+    // Connect to MongoDB
     await connectDB();
 
-    if (hasExistingSession()) {
-        console.log('[WolfBot WebServer] Existing session found — launching bot automatically...');
-        setTimeout(() => launchBot(), 2000);
+    // Auto-launch bot processes for all active sessions in MongoDB
+    try {
+        const activeSessions = await getActiveSessions();
+        if (activeSessions.length > 0) {
+            console.log(`[WolfBot WebServer] Found ${activeSessions.length} active session(s) — launching bots...`);
+            for (const session of activeSessions) {
+                setTimeout(() => launchBotForPhone(session.phone), 2000);
+            }
+        } else {
+            console.log('[WolfBot WebServer] No active sessions — waiting for users to pair.');
+        }
+    } catch (err) {
+        console.error('[WolfBot WebServer] Could not load active sessions:', err.message);
     }
 });

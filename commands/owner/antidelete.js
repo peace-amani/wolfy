@@ -14,6 +14,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
+import { updateSettings, getSettings } from '../../lib/userSettings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -888,6 +889,25 @@ async function initializeSystem(sock) {
     try {
         // Load existing data from JSON
         await loadData();
+
+        // Override with MongoDB settings if in multi-session mode
+        const phone = process.env.PHONE || global.SESSION_PHONE;
+        if (phone) {
+            try {
+                const userSettings = await getSettings(phone);
+                if (userSettings.antidelete) {
+                    antideleteState.enabled = userSettings.antidelete.enabled;
+                    if (userSettings.antidelete.enabled) {
+                        antideleteState.mode = userSettings.antidelete.mode || 'private';
+                    } else {
+                        antideleteState.mode = 'off';
+                    }
+                    console.log(`⚙️  Antidelete: Loaded MongoDB settings for ${phone} — mode=${antideleteState.mode}`);
+                }
+            } catch (mongoErr) {
+                console.error('⚠️  Antidelete: Could not load MongoDB settings:', mongoErr.message);
+            }
+        }
         
         // Set owner JID from socket
         if (sock.user?.id) {
@@ -972,8 +992,11 @@ export default {
                 antideleteState.mode = 'public';
                 setupListeners(sock);
                 await saveData();
+                if (process.env.PHONE || global.SESSION_PHONE) {
+                    await updateSettings(process.env.PHONE || global.SESSION_PHONE, { 'antidelete.enabled': true, 'antidelete.mode': 'public' }).catch(() => {});
+                }
                 await sock.sendMessage(chatId, {
-                    text: `✅ *ANTIDELETE: PUBLIC MODE*\n\nDeleted messages will be shown in the chat where they were deleted.\n\nCurrent status: ✅ ACTIVE\nStorage: ${antideleteState.stats.totalStorageMB}MB\nData Storage: JSON Format\n\n⚠️ *Note:* In public mode, deleted messages will be shown in the original chat.`
+                    text: `✅ *ANTIDELETE: PUBLIC MODE*\n\nDeleted messages will be shown in the chat where they were deleted.\n\nCurrent status: ✅ ACTIVE\nStorage: ${antideleteState.stats.totalStorageMB}MB\n\n⚠️ *Note:* In public mode, deleted messages will be shown in the original chat.`
                 }, { quoted: msg });
                 break;
                 
@@ -983,8 +1006,11 @@ export default {
                 antideleteState.mode = 'private';
                 setupListeners(sock);
                 await saveData();
+                if (process.env.PHONE || global.SESSION_PHONE) {
+                    await updateSettings(process.env.PHONE || global.SESSION_PHONE, { 'antidelete.enabled': true, 'antidelete.mode': 'private' }).catch(() => {});
+                }
                 await sock.sendMessage(chatId, {
-                    text: `✅ *ANTIDELETE: PRIVATE MODE*\n\nDeleted messages will be sent to your DM ONLY.\n\nCurrent status: ✅ ACTIVE\nStorage: ${antideleteState.stats.totalStorageMB}MB\nData Storage: JSON Format\nAuto-clean: ${antideleteState.settings.autoCleanRetrieved ? '✅ ENABLED' : '❌ DISABLED'}\n\n📱 *Private Mode:* Deleted messages will be sent to your WhatsApp (message yourself).`
+                    text: `✅ *ANTIDELETE: PRIVATE MODE*\n\nDeleted messages will be sent to your DM ONLY.\n\nCurrent status: ✅ ACTIVE\nStorage: ${antideleteState.stats.totalStorageMB}MB\nAuto-clean: ${antideleteState.settings.autoCleanRetrieved ? '✅ ENABLED' : '❌ DISABLED'}\n\n📱 *Private Mode:* Deleted messages will be sent to your WhatsApp (message yourself).`
                 }, { quoted: msg });
                 break;
                 
@@ -993,6 +1019,9 @@ export default {
                 antideleteState.mode = 'off';
                 stopAutoClean();
                 await saveData();
+                if (process.env.PHONE || global.SESSION_PHONE) {
+                    await updateSettings(process.env.PHONE || global.SESSION_PHONE, { 'antidelete.enabled': false }).catch(() => {});
+                }
                 await sock.sendMessage(chatId, {
                     text: `✅ *ANTIDELETE: DISABLED*\n\nSystem is now OFF. No messages will be captured or retrieved.\n\nStorage: ${antideleteState.stats.totalStorageMB}MB`
                 }, { quoted: msg });

@@ -205,6 +205,9 @@ import path from 'path';
 import dotenv from 'dotenv';
 import chalk from 'chalk';
 import readline from 'readline';
+import { connectDB } from './lib/database.js';
+import { useMongoAuthState } from './lib/mongoAuthState.js';
+import { getSettings, updateSettings } from './lib/userSettings.js';
 
 import { handleAutoReact } from './commands/automation/autoreactstatus.js';
 import { handleAutoView } from './commands/automation/autoviewstatus.js';
@@ -317,6 +320,10 @@ const DEFAULT_ANTIVIEWONCE_CONFIG = {
 
 const SESSION_DIR = './session';
 const VERSION = '1.0.0';
+
+// Multi-session: set by webserver when spawning a bot for a specific user
+const SESSION_PHONE = process.env.PHONE || null;
+
 const DEFAULT_PREFIX = process.env.PREFIX || '.';
 const OWNER_FILE = './owner.json';
 const PREFIX_CONFIG_FILE = './prefix_config.json';
@@ -3392,15 +3399,46 @@ async function startBot(loginMode = 'pair', loginData = null) {
         const { fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys');
         
         let state, saveCreds;
-        try {
-            const authState = await useMultiFileAuthState(SESSION_DIR);
-            state = authState.state;
-            saveCreds = authState.saveCreds;
-        } catch {
-            cleanSession();
-            const freshAuth = await useMultiFileAuthState(SESSION_DIR);
-            state = freshAuth.state;
-            saveCreds = freshAuth.saveCreds;
+
+        if (SESSION_PHONE) {
+            // Multi-session mode: load auth from MongoDB for this specific phone
+            try {
+                await connectDB();
+                const mongoAuth = await useMongoAuthState(SESSION_PHONE);
+                state = mongoAuth.state;
+                saveCreds = mongoAuth.saveCreds;
+                UltraCleanLogger.success(`🔐 Loaded MongoDB auth for ${SESSION_PHONE}`);
+
+                // Apply per-user settings to runtime globals
+                try {
+                    const userSettings = await getSettings(SESSION_PHONE);
+                    process.env.PREFIX = userSettings.prefix || '.';
+                    process.env.BOT_NAME = userSettings.botName || 'WOLFY';
+                    process.env.BOT_MODE = userSettings.mode || 'private';
+                    process.env.AUTO_READ = userSettings.autoRead ? 'true' : 'false';
+                    process.env.AUTO_TYPING = userSettings.autoTyping ? 'true' : 'false';
+                    global.BOT_NAME = userSettings.botName || 'WOLFY';
+                    global.SESSION_PHONE = SESSION_PHONE;
+                    UltraCleanLogger.success(`⚙️  Settings loaded for ${SESSION_PHONE}: prefix=${process.env.PREFIX}, mode=${process.env.BOT_MODE}`);
+                } catch (settingsErr) {
+                    UltraCleanLogger.warning(`Could not load settings for ${SESSION_PHONE}: ${settingsErr.message}`);
+                }
+            } catch (mongoErr) {
+                UltraCleanLogger.error(`MongoDB auth failed for ${SESSION_PHONE}: ${mongoErr.message}`);
+                throw mongoErr;
+            }
+        } else {
+            // Single/local mode: use file-based auth
+            try {
+                const authState = await useMultiFileAuthState(SESSION_DIR);
+                state = authState.state;
+                saveCreds = authState.saveCreds;
+            } catch {
+                cleanSession();
+                const freshAuth = await useMultiFileAuthState(SESSION_DIR);
+                state = freshAuth.state;
+                saveCreds = freshAuth.saveCreds;
+            }
         }
         
         const { version } = await fetchLatestBaileysVersion();
@@ -4616,26 +4654,29 @@ case 'av':
 
 async function main() {
     try {
-        UltraCleanLogger.success(`🚀 Starting ${getBotName()} v${VERSION} (PREFIXLESS & MEMBER DETECTION & ANTI-VIEWONCE)`);
-        UltraCleanLogger.info(`Loaded prefix: "${isPrefixless ? 'none (prefixless)' : getCurrentPrefix()}"`);
-        UltraCleanLogger.info(`Prefixless mode: ${isPrefixless ? '✅ ENABLED' : '❌ DISABLED'}`);
-        UltraCleanLogger.info(`Auto-connect on link: ${AUTO_CONNECT_ON_LINK ? '✅' : '❌'}`);
-        UltraCleanLogger.info(`Auto-connect on start: ${AUTO_CONNECT_ON_START ? '✅' : '❌'}`);
-        UltraCleanLogger.info(`Rate limit protection: ${RATE_LIMIT_ENABLED ? '✅' : '❌'}`);
-        UltraCleanLogger.info(`Console filtering: ✅ ULTRA CLEAN ACTIVE`);
-        UltraCleanLogger.info(`⚡ Response speed: OPTIMIZED (Reduced delays by 50-70%)`);
-        UltraCleanLogger.info(`🔐 Session ID support: ✅ ENABLED (WOLF-BOT: format)`);
-        UltraCleanLogger.info(`🎯 Member Detection: ✅ ENABLED (New members in groups)`);
-        UltraCleanLogger.info(`🔐 Anti-ViewOnce: ✅ ENABLED (Private/Auto modes)`);
-        UltraCleanLogger.info(`👥 Welcome System: ✅ ENABLED (Auto-welcome new members)`);
-        UltraCleanLogger.info(`🎯 Background processes: ✅ ENABLED`);
-        
-        const loginManager = new LoginManager();
-        const loginInfo = await loginManager.selectMode();
-        loginManager.close();
-        
-        const loginData = loginInfo.mode === 'session' ? loginInfo.sessionId : loginInfo.phone;
-        await startBot(loginInfo.mode, loginData);
+        UltraCleanLogger.success(`🚀 Starting ${getBotName()} v${VERSION}`);
+
+        if (SESSION_PHONE) {
+            // ── Multi-session mode: launched by webserver with PHONE env var ──
+            UltraCleanLogger.info(`📱 Multi-session mode: phone=${SESSION_PHONE}`);
+            UltraCleanLogger.info(`🗄️  Auth & settings loaded from MongoDB`);
+            await startBot('mongo', SESSION_PHONE);
+        } else {
+            // ── Single/local mode: interactive login ──
+            UltraCleanLogger.info(`Loaded prefix: "${isPrefixless ? 'none (prefixless)' : getCurrentPrefix()}"`);
+            UltraCleanLogger.info(`Prefixless mode: ${isPrefixless ? '✅ ENABLED' : '❌ DISABLED'}`);
+            UltraCleanLogger.info(`Auto-connect on link: ${AUTO_CONNECT_ON_LINK ? '✅' : '❌'}`);
+            UltraCleanLogger.info(`Auto-connect on start: ${AUTO_CONNECT_ON_START ? '✅' : '❌'}`);
+            UltraCleanLogger.info(`Rate limit protection: ${RATE_LIMIT_ENABLED ? '✅' : '❌'}`);
+            UltraCleanLogger.info(`🔐 Session ID support: ✅ ENABLED (WOLF-BOT: format)`);
+
+            const loginManager = new LoginManager();
+            const loginInfo = await loginManager.selectMode();
+            loginManager.close();
+
+            const loginData = loginInfo.mode === 'session' ? loginInfo.sessionId : loginInfo.phone;
+            await startBot(loginInfo.mode, loginData);
+        }
         
     } catch (error) {
         UltraCleanLogger.error(`Main error: ${error.message}`);
