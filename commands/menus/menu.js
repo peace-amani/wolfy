@@ -72,22 +72,15 @@ export default {
       const platform = getPlatform();
       const senderName = m.pushName || m.key.participant?.split("@")[0] || "User";
 
-      // Speed
-      const t0 = performance.now();
-      await Promise.resolve();
-      const speedMs = (performance.now() - t0).toFixed(2);
+      // Loading message first
+      await sock.sendMessage(jid, { text: `${botName} Loading menu...` }, { quoted: m });
+      await new Promise(r => setTimeout(r, 800));
 
       // Uptime
       const upSec = Math.floor(process.uptime());
       const upH = Math.floor(upSec / 3600);
       const upM = Math.floor((upSec % 3600) / 60);
       const upS = upSec % 60;
-
-      // Time
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString("en-US", {
-        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true,
-      });
 
       // RAM
       const totalMem = os.totalmem();
@@ -100,15 +93,12 @@ export default {
       // ── INFO SECTION (visible before Read More) ──
       const infoSection =
         `╭────────────────\n` +
-        `│ Time: ${timeStr}\n` +
         `│ User: ${senderName}\n` +
         `│ Owner: ${ownerName}\n` +
         `│ Mode: ${botMode}\n` +
         `│ Prefix: [ ${prefix} ]\n` +
         `│ Version: ${version}\n` +
-        `│ Panel: ${platform}\n` +
-        `│ Status: Active\n` +
-        `│ Speed: ${speedMs}ms\n` +
+        `│ Platform: ${platform}\n` +
         `│ Uptime: ${upH}h ${upM}m ${upS}s\n` +
         `│ Usage: ${usedMB} MB of ${totalGB} GB\n` +
         `│ RAM: ${ramBar} ${ramPct}%\n` +
@@ -116,9 +106,9 @@ export default {
 
       // ── COMMANDS (hidden behind Read More) ──
       const commandsText = `┌────────────────
-│ 🏠 GROUP MANAGEMENT 🏠 
+│ GROUP MANAGEMENT
 ├────────────────
-│ 🛡️ ADMIN & MODERATION 🛡️ 
+│ ADMIN & MODERATION
 ├────────────────
 │ add                     
 │ promote                 
@@ -151,7 +141,7 @@ export default {
 │ antistatusmention  
 │ antigrouplink
 ├────────────────
-│ 📊 GROUP INFO & TOOLS 📊 
+│ GROUP INFO & TOOLS
 ├────────────────
 │ groupinfo               
 │ tagadmin                
@@ -167,9 +157,9 @@ export default {
 └────────────────
 
 ┌────────────────
-│ 👑 OWNER CONTROLS 👑    
+│ OWNER CONTROLS
 ├────────────────
-│ ⚡ CORE MANAGEMENT ⚡    
+│ CORE MANAGEMENT
 ├────────────────
 │ setbotname              
 │ setowner                
@@ -188,7 +178,7 @@ export default {
 │ antidelete              
 │ antideletestatus                  
 ├────────────────
-│ 🔄 SYSTEM & MAINTENANCE 🛠️ 
+│ SYSTEM & MAINTENANCE
 ├────────────────
 │ restart                 
 │ workingreload           
@@ -202,7 +192,7 @@ export default {
 └────────────────
 
 ┌────────────────
-│ ⚙️ AUTOMATION ⚙️
+│ AUTOMATION
 ├────────────────
 │ autoread                
 │ autotyping              
@@ -213,9 +203,9 @@ export default {
 │ autorec                 
 └────────────────
 ┌────────────────
-│ ✨ GENERAL UTILITIES ✨
+│ GENERAL UTILITIES
 ├────────────────
-│ 🔍 INFO & SEARCH 🔎
+│ INFO & SEARCH
 ├────────────────
 │ alive
 │ ping
@@ -230,7 +220,7 @@ export default {
 │ getgpp
 │ prefixinfo
 ├───────────────
-│ 🔗 CONVERSION & MEDIA 📁
+│ CONVERSION & MEDIA
 ├───────────────
 │ shorturl
 │ qrencode
@@ -245,7 +235,7 @@ export default {
 └────────────────
 
 ├────────────────
-│ 🎵 MUSIC  🎶
+│ MUSIC
 ├────────────────
 │ play                    
 │ song                    
@@ -254,7 +244,7 @@ export default {
 └────────────────
 
 ┌───────────────
-│ 🤖 MEDIA & AI COMMANDS 🧠 
+│ MEDIA & AI COMMANDS
 ├───────────────
 │ ⬇️ MEDIA DOWNLOADS 📥     
 ├───────────────
@@ -271,7 +261,7 @@ export default {
 │ ytmp4
 │ ytplaydoc                  
 ├───────────────
-│ 🎨 AI GENERATION 💡    
+│ AI GENERATION
 ├───────────────
 │ gpt                     
 │ gemini                  
@@ -281,7 +271,7 @@ export default {
 │ suno                    
 │ wolfbot                         
 ├───────────────
-│ 🎨 AI TOOLS💡    
+│ AI TOOLS
 ├───────────────
 │ videogen   
 │ aiscanner
@@ -289,7 +279,7 @@ export default {
 │ summarize     
 └───────────────
 ┌───────────────
-│ 🖼️ IMAGE TOOLS 🖼️
+│ IMAGE TOOLS
 ├───────────────
 │ image                   
 │ imagegen           
@@ -299,9 +289,9 @@ export default {
 └───────────────
 
 ┌───────────────
-│ 🛡️ SECURITY & HACKING 🔒 
+│ SECURITY & HACKING
 ├───────────────
-│ 🌐 NETWORK & INFO 📡   
+│ NETWORK & INFO
 ├───────────────
 │ ipinfo                  
 │ shodan                  
@@ -310,9 +300,9 @@ export default {
 └───────────────
 
 ┌────────────────
-│ 🎨 LOGO DESIGN STUDIO 🎨
+│ LOGO DESIGN STUDIO
 ├────────────────
-│ 🌟 PREMIUM METALS 🌟    
+│ PREMIUM METALS
 ├────────────────
 │ goldlogo                
 │ silverlogo              
@@ -324,7 +314,7 @@ export default {
 │ copperlogo              
 │ titaniumlogo            
 ├────────────────
-│ 🔥 ELEMENTAL EFFECTS 🔥  
+│ ELEMENTAL EFFECTS
 ├────────────────
 │ firelogo                
 │ icelogo                 
@@ -335,7 +325,7 @@ export default {
 │ sunlogo                 
 │ moonlogo                
 ├────────────────
-│ 🎭 MYTHICAL & MAGICAL 🧙  
+│ MYTHICAL & MAGICAL
 ├────────────────
 │ dragonlogo              
 │ phoenixlogo             
@@ -343,23 +333,23 @@ export default {
 │ crystallogo             
 │ darkmagiclogo           
 ├────────────────
-│ 🌌 DARK & GOTHIC 🌑     
+│ DARK & GOTHIC
 ├────────────────
 │ shadowlogo              
 │ smokelogo               
 │ bloodlogo               
 ├────────────────
-│ 💫 GLOW & NEON EFFECTS 🌈  
+│ GLOW & NEON EFFECTS
 ├────────────────
 │ neonlogo                
 │ glowlogo                
 ├────────────────
-│ 🤖 TECH & FUTURISTIC 🚀  
+│ TECH & FUTURISTIC
 ├────────────────
 │ matrixlogo              
 └────────────────
 ┌────────────────
-│ 🐙 GITHUB COMMANDS 🐙
+│ GITHUB COMMANDS
 ├────────────────
 │ gitclone
 │ gitinfo
@@ -370,7 +360,7 @@ export default {
 │ release
 └────────────────
 ┌────────────────
-│ 🌸 ANIME COMMANDS 🌸
+│ ANIME COMMANDS
 ├────────────────
 │ awoo
 │ bj
