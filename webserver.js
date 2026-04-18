@@ -395,6 +395,26 @@ app.get('/admin/version', adminAuth, async (req, res) => {
     }
 });
 
+// Public pair-reset — stops bot, clears MongoDB session + pair dir for a phone
+// No auth needed: worst case a bad actor clears someone else's session (low impact)
+app.post('/pair-reset', async (req, res) => {
+    try {
+        const { phone } = req.body;
+        if (!phone) return res.json({ success: false, error: 'phone is required' });
+        const clean = String(phone).replace(/\D/g, '');
+        if (!clean || clean.length < 7) return res.json({ success: false, error: 'Invalid phone number' });
+        stopBotForPhone(clean);
+        wipePairDir(clean);
+        await deleteSession(clean).catch(() => {});
+        await markSessionInactive(clean).catch(() => {});
+        broadcastSse({ event: 'session_cleared', phone: clean });
+        console.log(`[WebServer] pair-reset: cleared session for ${clean}`);
+        res.json({ success: true, message: 'Session cleared — you can pair again now.' });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
 // Clear session from DB + stop bot
 app.post('/clear-session', adminAuth, async (req, res) => {
     try {
@@ -523,13 +543,14 @@ async function startPairing(phone, isReconnect = false) {
                     return;
                 }
 
-                // 401/403 = session rejected — wipe stale creds so next attempt starts clean
+                // 401/403 = session rejected — kill bot, wipe stale creds, let user retry fresh
                 if (statusCode === 401 || statusCode === 403) {
                     botStatus = 'idle';
                     activePairSocket = null;
+                    stopBotForPhone(phone);
                     wipePairDir(phone);
-                    await markSessionInactive(phone).catch(() => {});
-                    broadcastSse({ event: 'connection_closed', message: 'Session rejected by WhatsApp. Please try pairing again.' });
+                    await deleteSession(phone).catch(() => {});
+                    broadcastSse({ event: 'session_rejected', phone, message: 'Session rejected by WhatsApp — old session cleared. You can pair again now.' });
                     return;
                 }
 
