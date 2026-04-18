@@ -9,7 +9,7 @@ export default {
     try {
       if (!args.length) {
         return sock.sendMessage(jid, {
-          text: `*Lyrics Finder*\n\nUsage: lyrics <song name>\n\nExamples:\nlyrics Shape of You\nlyrics Blinding Lights The Weeknd`
+          text: `📝 *Lyrics Finder*\n\n• \`?lyrics <song name>\`\n• \`?lyric <song name>\`\n• \`?lyr <song name>\`\n\nExample:\n• \`?lyrics Shape of You\`\n• \`?lyrics Blinding Lights The Weeknd\``
         }, { quoted: m });
       }
 

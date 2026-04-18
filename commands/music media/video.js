@@ -9,7 +9,7 @@ export default {
     try {
       if (!args.length) {
         return sock.sendMessage(jid, {
-          text: `*Video Downloader*\n\nUsage: video <song name or YouTube link>\n\nExamples:\nvideo Shape of You\nvideo https://youtu.be/JGwWNGJdvx8`
+          text: `🎬 *Video Downloader*\n\n• \`?video <song name>\`\n• \`?video <YouTube URL>\`\n• \`?ytmp4 <song name>\`\n• \`?vid <song name>\`\n\nExample:\n• \`?video Shape of You\`\n• \`?video https://youtu.be/JGwWNGJdvx8\``
         }, { quoted: m });
       }
 

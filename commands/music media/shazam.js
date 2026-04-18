@@ -12,7 +12,7 @@ export default {
     try {
       if (!quoted || !quoted.audioMessage) {
         return sock.sendMessage(jid, {
-          text: `*Shazam — Song Identifier*\n\nReply to a voice note or audio message with:\nshazam\n\nThe bot will try to identify the song.`
+          text: `🎧 *Shazam — Song Identifier*\n\n• \`?shazam <song name>\`\n• \`?identify <song name>\`\n• \`?findmusic <song name>\`\n\nReply to an audio/voice note and include a song description.\n\nExample:\n• \`?shazam upbeat pop 2024\``
         }, { quoted: m });
       }
 

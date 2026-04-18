@@ -40,7 +40,7 @@ export default {
     if (args.length === 0) {
       const currentLimit = groupWarnLimits.get(jid) || 3;
       return sock.sendMessage(jid, { 
-        text: `📊 Current warning limit: ${currentLimit}\n\nUsage: .setwarn <number>\nExample: .setwarn 5 (sets limit to 5 warnings)` 
+        text: `⚠️ *Set Warning Limit*\n\nCurrent limit: *${currentLimit}*\n\n• \`.setwarn <number>\`\n\nExample:\n• \`.setwarn 3\`\n• \`.setwarn 5\`` 
       }, { quoted: msg });
     }
     

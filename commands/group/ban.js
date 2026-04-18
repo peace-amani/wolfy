@@ -464,7 +464,7 @@ export default {
             mentionedJid = args[0].includes('@s.whatsapp.net') ? args[0] : args[0] + '@s.whatsapp.net';
         } else {
             return sock.sendMessage(chatId, { 
-                text: '⚠️ Please mention or reply to the user you want to ban.\nUsage: .ban @user\n\nAdditional commands:\n.ban --list - Show banned users\n.ban --unban @user - Unban a user' 
+                text: `🚫 *Ban User*\n\n• \`.ban @user\`\n• \`.ban\` _(reply to a message)_\n• \`.ban --list\`\n• \`.ban --unban @user\`\n\nExample:\n• \`.ban @John\`` 
             }, { quoted: msg });
         }
 

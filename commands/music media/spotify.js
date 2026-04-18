@@ -9,7 +9,7 @@ export default {
     try {
       if (!args.length) {
         return sock.sendMessage(jid, {
-          text: `*Spotify Music Search*\n\nUsage: spotify <song name>\n\nExample:\nspotify Blinding Lights\nspotify Adele Hello`
+          text: `🟢 *Spotify Music Search*\n\n• \`?spotify <song name>\`\n• \`?sptfy <song name>\`\n\nExample:\n• \`?spotify Blinding Lights\`\n• \`?spotify Adele Hello\``
         }, { quoted: m });
       }
 

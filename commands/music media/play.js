@@ -9,7 +9,7 @@ export default {
     try {
       if (!args.length) {
         return sock.sendMessage(jid, {
-          text: `*Play Music*\n\nUsage: play <song name or YouTube link>\n\nExamples:\nplay Shape of You\nplay https://youtu.be/JGwWNGJdvx8`
+          text: `🎶 *Play Music*\n\n• \`?play <song name>\`\n• \`?play <YouTube URL>\`\n• \`?music <song name>\`\n\nExample:\n• \`?play Shape of You\`\n• \`?play https://youtu.be/JGwWNGJdvx8\``
         }, { quoted: m });
       }
 

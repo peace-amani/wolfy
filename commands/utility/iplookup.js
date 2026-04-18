@@ -12,7 +12,7 @@ export default {
     const jid = typeof from === 'string' ? from : m.key.remoteJid;
 
     if (!args.length) {
-      return sock.sendMessage(jid, { text: '❌ Please provide an IP address.\nExample: `.iplookup 8.8.8.8`' }, { quoted: m });
+      return sock.sendMessage(jid, { text: `🌍 *IP Lookup*\n\n• \`.iplookup <ip address>\`\n\nExample:\n• \`.iplookup 8.8.8.8\`\n• \`.iplookup 1.1.1.1\`` }, { quoted: m });
     }
 
     const ip = args[0];

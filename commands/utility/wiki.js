@@ -25,7 +25,7 @@ export default {
 
       if (!searchTerm) {
         return await sock.sendMessage(chatId, {
-          text: "⚠️ Usage: .wiki <search term>\nOr reply to a message with .wiki",
+          text: `📖 *Wikipedia Search*\n\n• \`.wiki <search term>\`\n• Reply to a message with \`.wiki\`\n\nExample:\n• \`.wiki Elon Musk\`\n• \`.wiki Black holes\``,
           quoted: msg
         });
       }

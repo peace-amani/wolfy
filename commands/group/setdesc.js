@@ -11,7 +11,7 @@ export default {
     }
 
     if (!text) {
-      return sock.sendMessage(jid, { text: '✏️ Please provide a description to set.\nUsage: `.setdesc Your new group description`' }, { quoted: msg });
+      return sock.sendMessage(jid, { text: `✏️ *Set Group Description*\n\n• \`.setdesc <description>\`\n\nExample:\n• \`.setdesc Welcome to our group! Rules apply.\`` }, { quoted: msg });
     }
 
     try {
