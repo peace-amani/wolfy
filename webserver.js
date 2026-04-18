@@ -55,19 +55,71 @@ function hasExistingSession() {
 }
 
 // ====== BOT PROCESS MANAGEMENT ======
+function buildSessionEnv() {
+    // Read creds.json and encode as WOLF-BOT: session ID so index.js
+    // can authenticate non-interactively using option 3 (Session ID mode).
+    try {
+        const credsPath = path.join(SESSION_DIR, 'creds.json');
+        if (!fs.existsSync(credsPath)) return {};
+        const raw = fs.readFileSync(credsPath, 'utf8');
+        const b64 = Buffer.from(raw).toString('base64');
+        return { SESSION_ID: `WOLF-BOT:${b64}` };
+    } catch {
+        return {};
+    }
+}
+
 function launchBot() {
     if (botProcess) return;
     console.log('[WebServer] Launching bot (index.js)...');
+
+    const sessionEnv = buildSessionEnv();
+    const hasSession = !!sessionEnv.SESSION_ID;
+
     botProcess = spawn('node', ['index.js'], {
-        stdio: 'inherit',
-        env: { ...process.env }
+        // pipe stdin so we can answer the login menu; inherit stdout/stderr
+        stdio: ['pipe', 'inherit', 'inherit'],
+        env: { ...process.env, ...sessionEnv }
     });
+
+    // Automatically answer the LoginManager prompts:
+    //   "Choose option (1-3, default 1):" → "3" (Use Session ID)
+    //   "Use existing Session ID? (y/n, default y):" → "y"
+    // Stagger the writes: the second readline question is set up ~200ms after
+    // the first answer is processed, so we must wait before sending "y".
+    if (hasSession && botProcess.stdin) {
+        setTimeout(() => {
+            try {
+                botProcess.stdin.write('3\n');
+            } catch (e) {
+                console.warn('[WebServer] Could not write option to bot stdin:', e.message);
+            }
+            setTimeout(() => {
+                try {
+                    botProcess.stdin.write('y\n');
+                } catch (e) {
+                    console.warn('[WebServer] Could not write confirm to bot stdin:', e.message);
+                }
+            }, 800); // wait for sessionIdMode() to set up its readline question
+        }, 2500);
+    }
+
     botProcess.on('exit', (code) => {
         console.log(`[WebServer] Bot exited with code ${code}`);
         botProcess = null;
-        botStatus = 'idle';
         broadcastSse({ event: 'bot_exited', code });
+
+        // Auto-restart if session still exists (not a deliberate logout)
+        if (code !== 0 && code !== 130 && code !== 143 && hasExistingSession()) {
+            console.log('[WebServer] Bot crashed — auto-restarting in 8s...');
+            botStatus = 'idle';
+            broadcastSse({ event: 'reconnecting', message: 'Bot restarting automatically...' });
+            setTimeout(() => launchBot(), 8000);
+        } else {
+            botStatus = 'idle';
+        }
     });
+
     botStatus = 'connected';
 }
 
@@ -249,11 +301,11 @@ async function startPairing(phone, isReconnect = false) {
             if (connection === 'open') {
                 console.log('[WebServer] WhatsApp connected!');
                 botStatus = 'connected';
-                broadcastSse({ event: 'connected_success', message: 'WhatsApp linked! Launching bot...' });
+                broadcastSse({ event: 'connected_success', message: 'WhatsApp linked! Bot is starting...' });
 
-                // Send success DM to the paired number
+                // Send success DM, wait for delivery, then cleanly close socket before launching bot
+                const ownerJid = sock.user.id;
                 try {
-                    const ownerJid = sock.user.id;
                     const successMsg =
 `✅ *WOLFBOT CONNECTED SUCCESSFULLY!*
 
@@ -279,12 +331,19 @@ _Powered by Silent Wolf Bot v1.1.3_`;
 
                     await sock.sendMessage(ownerJid, { text: successMsg });
                     console.log('[WebServer] Success DM sent to owner.');
+                    // Give WhatsApp time to actually deliver the message
+                    await new Promise(r => setTimeout(r, 4000));
                 } catch (dmErr) {
                     console.warn('[WebServer] Could not send success DM:', dmErr.message);
+                    await new Promise(r => setTimeout(r, 1000));
                 }
 
+                // Close the pairing socket cleanly before index.js creates its own
+                try { sock.ws?.close(); } catch {}
                 activePairSocket = null;
-                setTimeout(() => launchBot(), 2000);
+
+                // Launch index.js after socket is fully closed
+                setTimeout(() => launchBot(), 1500);
             }
 
             if (connection === 'close') {
