@@ -1,33 +1,36 @@
 {
-  "name": "Silent Wolf Bot",
-  "description": "Powerful WhatsApp Bot - Just add your session ID or phone number",
-  "repository": "https://github.com/777Wolf-dot/Silent-Wolf--Bot.git",
-  "logo": "https://raw.githubusercontent.com/777Wolf-dot/Silent-Wolf--Bot/main/wolf.png",
-  "keywords": ["whatsapp", "bot", "wolf", "automation"],
+  "name": "WOLFY WhatsApp Bot",
+  "description": "Multi-session WhatsApp SaaS bot powered by Baileys",
+  "repository": "https://github.com/777Wolf-dot/wolf-bot",
+  "keywords": ["whatsapp", "bot", "baileys", "nodejs"],
+  "stack": "heroku-22",
+  "buildpacks": [
+    { "url": "heroku/nodejs" }
+  ],
   "env": {
-    "SESSION_ID": {
-      "description": "Paste your WOLF-BOT session ID here (Get from session generator)",
-      "required": false
+    "MONGODB_URI": {
+      "description": "MongoDB Atlas connection string (mongodb+srv://...)",
+      "required": true
     },
-    "PHONE_NUMBER": {
-      "description": "OR enter your phone number (with country code, no +) for pairing code login",
-      "required": false
+    "ADMIN_API_KEY": {
+      "description": "Secret key protecting /admin/* endpoints",
+      "required": true
     },
-    "PREFIX": {
-      "description": "Bot command prefix (default: .)",
-      "value": ".",
+    "NODE_ENV": {
+      "description": "Node environment",
+      "value": "production"
+    },
+    "GITHUB_REPO": {
+      "description": "GitHub repo slug for update version checks",
+      "value": "777Wolf-dot/wolf-bot",
       "required": false
     }
   },
-  "buildpacks": [
-    {
-      "url": "heroku/nodejs"
-    }
-  ],
   "formation": {
-    "worker": {
+    "web": {
       "quantity": 1,
-      "size": "free"
+      "size": "basic"
     }
-  }
+  },
+  "addons": []
 }
