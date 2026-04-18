@@ -253,7 +253,7 @@
 
 // // ====== CONFIGURATION ======
 // const SESSION_DIR = './session';
-// const BOT_NAME = process.env.BOT_NAME || 'WOLFBOT';
+// const BOT_NAME = process.env.BOT_NAME || 'WOLFY';
 // const VERSION = '1.1.3'; // Updated version for prefixless & new member detection
 // const DEFAULT_PREFIX = process.env.PREFIX || '.';
 // const OWNER_FILE = './owner.json';
@@ -3095,45 +3095,22 @@
 //                     defibrillator.startMonitoring(sock);
 //                 }, 10000);
                 
-//                 // Send professional success message like WOLFBOT
-//                 setTimeout(async () => {
-//                     try {
-//                         const ownerJid = sock.user.id;
-//                         const cleaned = jidManager.cleanJid(ownerJid);
-//                         const currentPrefix = getCurrentPrefix();
-//                         const prefixDisplay = isPrefixless ? 'none (prefixless)' : `"${currentPrefix}"`;
-//                         const platform = detectPlatform();
-                        
-//                         const successMessage = `✅ *${BOT_NAME} v${VERSION} CONNECTED SUCCESSFULLY!*\n\n` +
-//                                              `📋 *SYSTEM INFORMATION:*\n` +
-//                                              `├─ Version: ${VERSION}\n` +
-//                                              `├─ Platform: ${platform}\n` +
-//                                              `├─ Prefix: ${prefixDisplay}\n` +
-//                                              `├─ Mode: ${BOT_MODE}\n` +
-//                                              `├─ Member Detection: ✅ ACTIVE\n` +
-//                                              `├─ Status: 24/7 Ready!\n` +
-//                                              `└─ Auth Method: ${loginMode === 'session' ? 'Session ID' : 'Pairing Code'}\n\n` +
-//                                              `👤 *YOUR INFORMATION:*\n` +
-//                                              `├─ Number: +${cleaned.cleanNumber}\n` +
-//                                              `├─ JID: ${cleaned.cleanJid}\n` +
-//                                              `├─ Device: ${cleaned.isLid ? 'Linked Device 🔗' : 'Regular Device 📱'}\n` +
-//                                              `└─ Linked: ${new Date().toLocaleTimeString()}\n\n` +
-//                                              `⚡ *BACKGROUND PROCESSES:*\n` +
-//                                              `├─ Ultimate Fix: ✅ COMPLETE\n` +
-//                                              `├─ Defibrillator: ✅ ACTIVE\n` +
-//                                              `├─ Member Detection: ✅ ACTIVE\n` +
-//                                              `├─ Auto-Join: ${AUTO_JOIN_ENABLED ? '✅ ENABLED' : '❌ DISABLED'}\n` +
-//                                              `└─ All systems: ✅ OPERATIONAL\n\n` +
-//                                              `🎉 *Bot is now fully operational!*\n` +
-//                                              `💬 Try using ${currentPrefix ? currentPrefix + 'ping' : 'ping'} to verify.`;
-                        
-//                         await sock.sendMessage(ownerJid, { text: successMessage });
-//                         UltraCleanLogger.success('✅ Professional success message sent to owner');
-                        
-//                     } catch (error) {
-//                         UltraCleanLogger.error('Could not send success message:', error.message);
-//                     }
-//                 }, 3000);
+//                                 // Send simple success message on every connect/restart
+                setTimeout(async () => {
+                    try {
+                        const ownerJid = sock.user.id;
+                        const currentPrefix = getCurrentPrefix();
+                        const uptime = process.uptime();
+                        const h = Math.floor(uptime / 3600);
+                        const m2 = Math.floor((uptime % 3600) / 60);
+                        const s = Math.floor(uptime % 60);
+                        const successMessage = `*${BOT_NAME}*\nStatus: ✅ Connected\nPrefix: ${currentPrefix}\nUptime: ${h}h ${m2}m ${s}s`;
+                        await sock.sendMessage(ownerJid, { text: successMessage });
+                        UltraCleanLogger.success('✅ Success message sent to owner');
+                    } catch (error) {
+                        UltraCleanLogger.error('Could not send success message:', error.message);
+                    }
+                }, 3000);
                 
 //             }
             
@@ -4506,7 +4483,7 @@ const DEFAULT_ANTIVIEWONCE_CONFIG = {
 
 // ====== CONFIGURATION ======
 const SESSION_DIR = './session';
-const BOT_NAME = process.env.BOT_NAME || 'WOLFBOT';
+const BOT_NAME = process.env.BOT_NAME || 'WOLFY';
 const VERSION = '1.1.3'; // Updated version for prefixless & new member detection & anti-viewonce
 const DEFAULT_PREFIX = process.env.PREFIX || '.';
 const OWNER_FILE = './owner.json';
@@ -7819,43 +7796,18 @@ async function startBot(loginMode = 'pair', loginData = null) {
                     defibrillator.startMonitoring(sock);
                 }, 10000);
                 
-                // Send professional success message like WOLFBOT
+                                // Send simple success message on every connect/restart
                 setTimeout(async () => {
                     try {
                         const ownerJid = sock.user.id;
-                        const cleaned = jidManager.cleanJid(ownerJid);
                         const currentPrefix = getCurrentPrefix();
-                        const prefixDisplay = isPrefixless ? 'none (prefixless)' : `"${currentPrefix}"`;
-                        const platform = detectPlatform();
-                        
-                        const successMessage = `✅ *${BOT_NAME} v${VERSION} CONNECTED SUCCESSFULLY!*\n\n` +
-                                             `📋 *SYSTEM INFORMATION:*\n` +
-                                             `├─ Version: ${VERSION}\n` +
-                                             `├─ Platform: ${platform}\n` +
-                                             `├─ Prefix: ${prefixDisplay}\n` +
-                                             `├─ Mode: ${BOT_MODE}\n` +
-                                             `├─ Member Detection: ✅ ACTIVE\n` +
-                                             `├─ Anti-ViewOnce: ✅ ACTIVE\n` +
-                                             `├─ Status: 24/7 Ready!\n` +
-                                             `└─ Auth Method: ${loginMode === 'session' ? 'Session ID' : 'Pairing Code'}\n\n` +
-                                             `👤 *YOUR INFORMATION:*\n` +
-                                             `├─ Number: +${cleaned.cleanNumber}\n` +
-                                             `├─ JID: ${cleaned.cleanJid}\n` +
-                                             `├─ Device: ${cleaned.isLid ? 'Linked Device 🔗' : 'Regular Device 📱'}\n` +
-                                             `└─ Linked: ${new Date().toLocaleTimeString()}\n\n` +
-                                             `⚡ *BACKGROUND PROCESSES:*\n` +
-                                             `├─ Ultimate Fix: ✅ COMPLETE\n` +
-                                             `├─ Defibrillator: ✅ ACTIVE\n` +
-                                             `├─ Member Detection: ✅ ACTIVE\n` +
-                                             `├─ Anti-ViewOnce: ✅ ACTIVE\n` +
-                                             `├─ Auto-Join: ${AUTO_JOIN_ENABLED ? '✅ ENABLED' : '❌ DISABLED'}\n` +
-                                             `└─ All systems: ✅ OPERATIONAL\n\n` +
-                                             `🎉 *Bot is now fully operational!*\n` +
-                                             `💬 Try using ${currentPrefix ? currentPrefix + 'ping' : 'ping'} to verify.`;
-                        
+                        const uptime = process.uptime();
+                        const h = Math.floor(uptime / 3600);
+                        const m2 = Math.floor((uptime % 3600) / 60);
+                        const s = Math.floor(uptime % 60);
+                        const successMessage = `*${BOT_NAME}*\nStatus: ✅ Connected\nPrefix: ${currentPrefix}\nUptime: ${h}h ${m2}m ${s}s`;
                         await sock.sendMessage(ownerJid, { text: successMessage });
-                        UltraCleanLogger.success('✅ Professional success message sent to owner');
-                        
+                        UltraCleanLogger.success('✅ Success message sent to owner');
                     } catch (error) {
                         UltraCleanLogger.error('Could not send success message:', error.message);
                     }
