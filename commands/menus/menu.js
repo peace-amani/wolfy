@@ -52,9 +52,8 @@ const getPlatform = () => {
 };
 
 const createReadMoreEffect = (text1, text2) => {
-  const chars = ['\u200E', '\u200F', '\u200B', '\u200C', '\u200D', '\u2060', '\uFEFF'];
-  const invisible = Array.from({ length: 550 }, (_, i) => chars[i % chars.length]).join('');
-  return `${text1}${invisible}\n${text2}`;
+  const invisible = '\u200B'.repeat(3000);
+  return `${text1}\n${invisible}\n${text2}`;
 };
 
 export default {
