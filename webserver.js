@@ -187,7 +187,8 @@ function adminAuth(req, res, next) {
 
 // GET /admin/sessions — all sessions (active + inactive + pairing)
 app.get('/admin/sessions', adminAuth, async (req, res) => {
-    const sessions = await getAllSessions();
+    const runningPhones = new Set(botProcesses.keys());
+    const sessions = await getAllSessions(runningPhones);
     res.json({ success: true, count: sessions.length, sessions });
 });
 
@@ -199,7 +200,8 @@ app.get('/admin/sessions/active', adminAuth, async (req, res) => {
 
 // GET /admin/stats — overall stats
 app.get('/admin/stats', adminAuth, async (req, res) => {
-    const stats = await getSessionStats();
+    const runningPhones = new Set(botProcesses.keys());
+    const stats = await getSessionStats(runningPhones);
     const db = getConnectionStatus();
     res.json({
         success: true,
