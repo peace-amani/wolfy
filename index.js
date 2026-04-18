@@ -8667,38 +8667,18 @@ case 'av':
     break;
 
 
-            case 'ping':
-    const start = Date.now();
-    const latency = Date.now() - start;
-    
-    let statusInfo = '';
-    if (statusDetector) {
-        const stats = statusDetector.getStats();
-        statusInfo = `👁️ Status Detector: ✅ ACTIVE\n`;
-        statusInfo += `📊 Detected: ${stats.totalDetected} statuses\n`;
-    }
-    
-    // Member detection stats
-    let memberInfo = '';
-    if (memberDetector) {
-        const memberStats = memberDetector.getStats();
-        memberInfo = `👥 Member Detector: ✅ ACTIVE\n`;
-        memberInfo += `📊 Events: ${memberStats.totalEvents}\n`;
-    }
-    
-    // Anti-viewonce stats
-    let antiviewonceInfoPing = ''; // Changed variable name
-    if (antiViewOnceSystem) {
-        const antiviewonceStats = antiViewOnceSystem.getStats();
-        antiviewonceInfoPing = `🔐 Anti-ViewOnce: ✅ ACTIVE\n`;
-        antiviewonceInfoPing += `📊 Captured: ${antiviewonceStats.total} media\n`;
-        antiviewonceInfoPing += `🎯 Mode: ${antiviewonceStats.mode}\n`;
-    }
-    
-    await sock.sendMessage(chatId, { 
-        text: `🏓 *Pong!*\nLatency: ${latency}ms\nPrefix: "${isPrefixless ? 'none (prefixless)' : currentPrefix}"\nMode: ${BOT_MODE}\nOwner: ${isOwnerUser ? 'Yes ✅' : 'No ❌'}\n${statusInfo}${memberInfo}${antiviewonceInfoPing}Status: Connected ✅`
-    }, { quoted: msg });
-    break;
+            case 'ping': {
+                const pingStart2 = Date.now();
+                const pingSpeed = Date.now() - pingStart2;
+                const pingBotNum = sock.user?.id?.split(':')[0]?.split('@')[0] || '0000000000';
+                await sock.sendMessage(chatId, {
+                    contacts: {
+                        displayName: 'WOLFY',
+                        contacts: [{ vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:WOLFY\nORG:Speed: ${pingSpeed}ms;\nTEL;type=CELL;type=VOICE;waid=${pingBotNum}:+${pingBotNum}\nEND:VCARD` }]
+                    }
+                }, { quoted: msg });
+                break;
+            }
             case 'help':
                 let helpText = `🐺 *${BOT_NAME} HELP*\n\n`;
                 helpText += `Prefix: "${isPrefixless ? 'none (prefixless)' : currentPrefix}"\n`;
@@ -8766,41 +8746,20 @@ case 'av':
                 await sock.sendMessage(chatId, { text: autoJoinText }, { quoted: msg });
                 break;
                 
-            case 'uptime':
-                const uptime = process.uptime();
-                const hours = Math.floor(uptime / 3600);
-                const minutes = Math.floor((uptime % 3600) / 60);
-                const seconds = Math.floor(uptime % 60);
-                
-                let statusDetectorInfo = '';
-                if (statusDetector) {
-                    const stats = statusDetector.getStats();
-                    statusDetectorInfo = `👁️ Status Detector: ✅ ACTIVE\n`;
-                    statusDetectorInfo += `📊 Detected: ${stats.totalDetected} statuses\n`;
-                    statusDetectorInfo += `🕒 Last: ${stats.lastDetection}\n`;
-                }
-                
-                let memberDetectorInfo = '';
-                if (memberDetector) {
-                    const memberStats = memberDetector.getStats();
-                    memberDetectorInfo = `👥 Member Detector: ✅ ACTIVE\n`;
-                    memberDetectorInfo += `📊 Events: ${memberStats.totalEvents}\n`;
-                    memberDetectorInfo += `📈 Groups: ${memberStats.totalGroups}\n`;
-                }
-                
-                const antiviewonceInfo = '';
-                if (antiViewOnceSystem) {
-                    const antiviewonceStats = antiViewOnceSystem.getStats();
-                    antiviewonceInfo = `🔐 Anti-ViewOnce: ✅ ACTIVE\n`;
-                    antiviewonceInfo += `📊 Captured: ${antiviewonceStats.total} media\n`;
-                    antiviewonceInfo += `🎯 Mode: ${antiviewonceStats.mode}\n`;
-                    antiviewonceInfo += `💾 Size: ${antiviewonceStats.totalSizeKB}KB\n`;
-                }
-                
+            case 'uptime': {
+                const uptimeSec = process.uptime();
+                const upH = Math.floor(uptimeSec / 3600);
+                const upM = Math.floor((uptimeSec % 3600) / 60);
+                const upS = Math.floor(uptimeSec % 60);
+                const upBotNum = sock.user?.id?.split(':')[0]?.split('@')[0] || '0000000000';
                 await sock.sendMessage(chatId, {
-                    text: `⏰ *UPTIME*\n\n${hours}h ${minutes}m ${seconds}s\n📊 Commands: ${commands.size}\n👑 Owner: +${ownerInfo.ownerNumber}\n💬 Prefix: "${isPrefixless ? 'none (prefixless)' : currentPrefix}"\n🎛️ Mode: ${BOT_MODE}\n${statusDetectorInfo}${memberDetectorInfo}${antiviewonceInfo}`
+                    contacts: {
+                        displayName: 'WOLFY',
+                        contacts: [{ vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:WOLFY\nORG:Uptime: ${upH}h ${upM}m ${upS}s;\nTEL;type=CELL;type=VOICE;waid=${upBotNum}:+${upBotNum}\nEND:VCARD` }]
+                    }
                 }, { quoted: msg });
                 break;
+            }
                 
             case 'statusstats':
                 if (statusDetector) {
