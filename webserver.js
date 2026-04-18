@@ -183,16 +183,21 @@ app.post('/clear-session', (req, res) => {
 });
 
 // ====== PAIRING LOGIC ======
-async function startPairing(phone) {
+// Code 515 = WhatsApp "Restart Required" — normal part of pairing flow after user enters the code.
+// We must reconnect using the saved creds and the socket will open as authenticated.
+async function startPairing(phone, isReconnect = false) {
     try {
-        botStatus = 'pairing';
-        broadcastSse({ event: 'pairing_started', phone });
+        if (!isReconnect) {
+            botStatus = 'pairing';
+            broadcastSse({ event: 'pairing_started', phone });
+        }
 
         const { default: makeWASocket } = await import('@whiskeysockets/baileys');
         const { useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys');
 
         if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
 
+        // Always reload creds from disk so reconnect picks up saved token
         const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
         const { version } = await fetchLatestBaileysVersion();
 
@@ -211,11 +216,11 @@ async function startPairing(phone) {
             markOnlineOnConnect: true,
             connectTimeoutMs: 60000,
             keepAliveIntervalMs: 15000,
+            retryRequestDelayMs: 2000,
             mobile: false
         });
 
         activePairSocket = sock;
-
         sock.ev.on('creds.update', saveCreds);
 
         let codeSent = false;
@@ -223,17 +228,16 @@ async function startPairing(phone) {
         sock.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect } = update;
 
-            if (connection === 'connecting' && !state.creds.registered && !codeSent) {
+            // Only request pairing code on first connect, not on reconnects
+            if (connection === 'connecting' && !state.creds.registered && !codeSent && !isReconnect) {
                 codeSent = true;
                 try {
-                    // Small delay to let socket stabilize
-                    await new Promise(r => setTimeout(r, 2000));
+                    await new Promise(r => setTimeout(r, 2500));
                     const code = await sock.requestPairingCode(phone);
                     const clean = code.replace(/\s+/g, '');
                     const formatted = clean.length === 8
                         ? `${clean.substring(0, 4)}-${clean.substring(4, 8)}`
                         : clean;
-
                     console.log(`[WebServer] Pairing code for ${phone}: ${formatted}`);
                     broadcastSse({ event: 'pairing_code', code: formatted, phone });
                 } catch (err) {
@@ -284,20 +288,33 @@ _Powered by Silent Wolf Bot v1.1.3_`;
             }
 
             if (connection === 'close') {
-                const code = lastDisconnect?.error?.output?.statusCode;
-                const shouldReconnect = code !== 401 && code !== 403;
-                console.log(`[WebServer] Connection closed (code: ${code}, reconnect: ${shouldReconnect})`);
+                const statusCode = lastDisconnect?.error?.output?.statusCode;
+                console.log(`[WebServer] Connection closed (code: ${statusCode})`);
 
-                if (botStatus !== 'connected') {
-                    botStatus = 'idle';
-                    broadcastSse({
-                        event: 'connection_closed',
-                        message: shouldReconnect
-                            ? 'Connection dropped. Please try again.'
-                            : 'Session rejected or expired. Please clear session and retry.'
-                    });
+                if (botStatus === 'connected') return; // already done, ignore
+
+                // 515 = WhatsApp restart-required after code entry — reconnect to complete auth
+                if (statusCode === 515) {
+                    console.log('[WebServer] Got 515 (Restart Required) — reconnecting to complete pairing...');
+                    broadcastSse({ event: 'reconnecting', message: 'Code accepted! Finalising connection...' });
+                    activePairSocket = null;
+                    await new Promise(r => setTimeout(r, 1500));
+                    startPairing(phone, true); // reconnect with saved creds
+                    return;
                 }
+
+                // 401/403 = session rejected — tell user to clear and retry
+                if (statusCode === 401 || statusCode === 403) {
+                    botStatus = 'idle';
+                    activePairSocket = null;
+                    broadcastSse({ event: 'connection_closed', message: 'Session rejected by WhatsApp. Click "Clear Session" and pair again.' });
+                    return;
+                }
+
+                // Any other disconnect — surface the error
+                botStatus = 'idle';
                 activePairSocket = null;
+                broadcastSse({ event: 'connection_closed', message: `Connection dropped (code ${statusCode}). Please try again.` });
             }
         });
 
@@ -578,6 +595,10 @@ function handleEvent(data) {
     case 'session_saved':
       showStatus('sessionStatus', 'success', '✅ ' + data.message);
       setTopStatus('connecting', 'Launching bot...');
+      break;
+    case 'reconnecting':
+      showStatus('pairStatus', 'info', '🔄 ' + data.message);
+      setTopStatus('connecting', 'Finalising pairing...');
       break;
     case 'connection_closed':
       showStatus('pairStatus', 'error', '⚠️ ' + data.message);
