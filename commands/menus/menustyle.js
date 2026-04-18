@@ -230,9 +230,9 @@ export function getCurrentMenuStyle() {
       const json = JSON.parse(data);
       return json.current || 1;
     }
-    return 1; // Default style
+    return 7; // Default style
   } catch (err) {
     console.error("❌ Error reading current menu style:", err);
-    return 1;
+    return 7;
   }
 }
