@@ -30,6 +30,7 @@
   },
   "scripts": {
     "start": "node index.js",
+    "webserver": "node webserver.js",
     "deploy": "node restart.js",
     "auto": "node auto_restart.js",
     "restart": "restart_wrapper.bat",

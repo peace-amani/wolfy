@@ -41,5 +41,22 @@ On first run, the bot prompts for login:
 - `SESSION_ID` - WhatsApp session ID for headless auth
 - `PANEL_PORT` - Panel server port (default: 3000)
 
+## Web Pairing Panel
+`webserver.js` — Express server on port 5000 that provides a web UI for pairing.
+
+### Features
+- **Pairing Code**: Enter phone number → get 8-digit code → enter in WhatsApp Linked Devices
+- **Session ID**: Paste existing `WOLF-BOT:{base64}` or raw base64 session → saved to `session/creds.json`
+- **Real-time updates**: Server-Sent Events (SSE) push pairing codes and status to the browser
+- **Auto-launch**: Once authenticated, automatically spawns `node index.js` as a child process
+- **Status bar**: Shows bot connection state (idle / pairing / connected)
+- **Clear Session**: Wipe session and start over
+
+### How it works
+1. `node webserver.js` starts Express on port 5000
+2. If `session/creds.json` already exists, it auto-launches `index.js`
+3. Otherwise, user visits the panel, enters phone or pastes session ID
+4. On successful pairing, creds are saved and `index.js` is spawned
+
 ## Workflow
-- **Start application** - Runs `npm start` as a console workflow
+- **Start application** - Runs `node webserver.js` (webview on port 5000)
