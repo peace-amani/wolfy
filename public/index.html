@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WOLFY — Dev Pair</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green: #00ff00;
+      --green-dim: rgba(0,255,0,0.12);
+      --green-border: rgba(0,255,0,0.25);
+      --green-glow: 0 0 20px rgba(0,255,0,0.3);
+    }
+    body {
+      background: #000;
+      color: var(--green);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background-image: radial-gradient(circle at 50% 50%, rgba(0,255,0,0.03) 0%, transparent 70%);
+    }
+    .card {
+      background: rgba(0,10,0,0.9);
+      border: 1px solid var(--green-border);
+      border-radius: 16px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: var(--green-glow), inset 0 0 40px rgba(0,255,0,0.02);
+    }
+    .dev-badge {
+      display: inline-block;
+      background: rgba(255,165,0,0.15);
+      border: 1px solid rgba(255,165,0,0.4);
+      color: #ffaa00;
+      font-size: 0.65rem;
+      letter-spacing: 2px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      font-family: 'Orbitron', monospace;
+    }
+    h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      color: var(--green);
+      text-shadow: var(--green-glow);
+      margin-bottom: 4px;
+    }
+    .sub { color: rgba(0,255,0,0.4); font-size: 0.75rem; margin-bottom: 28px; }
+    label { display: block; font-size: 0.72rem; color: rgba(0,255,0,0.5); letter-spacing: 1px; margin-bottom: 8px; }
+    .neon-input {
+      width: 100%;
+      background: rgba(0,255,0,0.04);
+      border: 1px solid var(--green-border);
+      border-radius: 8px;
+      color: var(--green);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 14px;
+    }
+    .neon-input:focus { border-color: rgba(0,255,0,0.6); box-shadow: 0 0 12px rgba(0,255,0,0.15); }
+    .btn {
+      width: 100%;
+      background: var(--green);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 12px;
+    }
+    .btn:hover { background: #33ff33; box-shadow: 0 0 20px rgba(0,255,0,0.4); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid rgba(0,255,0,0.3);
+      color: rgba(0,255,0,0.7);
+      border-radius: 8px;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    .btn-outline:hover { border-color: rgba(0,255,0,0.7); color: var(--green); }
+    .status-box {
+      border: 1px solid var(--green-border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 14px;
+      background: var(--green-dim);
+      display: none;
+    }
+    .status-box.visible { display: block; }
+    .status-box .label { font-size: 0.65rem; letter-spacing: 2px; color: rgba(0,255,0,0.4); margin-bottom: 6px; }
+    .code-display {
+      font-family: 'Orbitron', monospace;
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--green);
+      text-shadow: var(--green-glow);
+      letter-spacing: 0.2em;
+    }
+    .msg {
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .msg.visible { display: block; }
+    .msg.warn { background: rgba(255,165,0,0.1); border: 1px solid rgba(255,165,0,0.3); color: #ffaa00; }
+    .msg.ok   { background: rgba(0,255,0,0.08); border: 1px solid rgba(0,255,0,0.3); color: var(--green); }
+    .msg.err  { background: rgba(255,50,50,0.08); border: 1px solid rgba(255,50,50,0.3); color: #ff6666; }
+    .spinner { display: inline-block; animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .steps { margin-top: 20px; border-top: 1px solid rgba(0,255,0,0.1); padding-top: 16px; font-size: 0.75rem; color: rgba(0,255,0,0.4); line-height: 2; }
+    .steps b { color: rgba(0,255,0,0.7); }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="dev-badge">⚡ DEV MODE — LOCAL REPLIT</div>
+  <h1>WOLFY</h1>
+  <p class="sub">// Local bot testing — changes here, push to Heroku when ready</p>
+
+  <label>PHONE NUMBER (with country code)</label>
+  <input type="tel" id="phoneInput" class="neon-input" placeholder="254788710904" maxlength="15"/>
+
+  <button class="btn" id="pairBtn" onclick="startPairing()">GET PAIRING CODE</button>
+
+  <div class="status-box" id="codeBox">
+    <div class="label">PAIRING CODE — enter in WhatsApp</div>
+    <div class="code-display" id="codeDisplay">— — — —</div>
+    <div style="font-size:0.72rem;color:rgba(0,255,0,0.4);margin-top:6px;">
+      WhatsApp → Settings → Linked Devices → Link a Device
+    </div>
+  </div>
+
+  <div class="msg" id="statusMsg"></div>
+
+  <button class="btn-outline" id="clearBtn" onclick="clearAndRetry()" style="display:none">↺ Clear & Retry</button>
+
+  <div class="steps">
+    1. Enter number → click <b>Get Pairing Code</b><br/>
+    2. Open <b>WhatsApp</b> → Settings → Linked Devices<br/>
+    3. Tap <b>"Link a Device"</b> → enter code above<br/>
+    4. Wait for <b>bot connected</b> message<br/>
+    5. Test commands in WhatsApp<br/>
+    6. Push to Heroku via admin dashboard
+  </div>
+</div>
+
+<script>
+  let evtSource = null;
+  let currentPhone = '';
+
+  function setMsg(text, type) {
+    const el = document.getElementById('statusMsg');
+    el.textContent = text;
+    el.className = 'msg visible ' + type;
+  }
+  function hideMsg() {
+    document.getElementById('statusMsg').className = 'msg';
+  }
+  function showCode(code) {
+    document.getElementById('codeBox').classList.add('visible');
+    document.getElementById('codeDisplay').textContent = code || '— — — —';
+  }
+  function hideCode() {
+    document.getElementById('codeBox').classList.remove('visible');
+    document.getElementById('codeDisplay').textContent = '— — — —';
+  }
+
+  async function startPairing() {
+    const phone = document.getElementById('phoneInput').value.replace(/\D/g, '');
+    if (!phone || phone.length < 7) { setMsg('Enter a valid phone number with country code.', 'warn'); return; }
+    currentPhone = phone;
+
+    document.getElementById('pairBtn').disabled = true;
+    document.getElementById('pairBtn').innerHTML = '<span class="spinner">◌</span> Connecting...';
+    document.getElementById('clearBtn').style.display = 'none';
+    hideCode(); hideMsg();
+
+    // Subscribe to SSE first
+    if (evtSource) { evtSource.close(); evtSource = null; }
+    evtSource = new EventSource('/events');
+    evtSource.onmessage = (e) => {
+      try {
+        const d = JSON.parse(e.data);
+        handleEvent(d);
+      } catch {}
+    };
+    evtSource.onerror = () => {};
+
+    // Request pairing
+    try {
+      const r = await fetch('/pair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+      const data = await r.json();
+      if (!data.success) {
+        resetBtn();
+        setMsg('❌ ' + (data.error || 'Failed to start pairing'), 'err');
+        document.getElementById('clearBtn').style.display = 'block';
+      }
+    } catch (err) {
+      resetBtn();
+      setMsg('❌ Network error: ' + err.message, 'err');
+    }
+  }
+
+  function handleEvent(d) {
+    if (d.event === 'pairing_code') {
+      showCode(d.code);
+      setMsg('⚡ Code ready — enter it in WhatsApp now', 'ok');
+    } else if (d.event === 'reconnecting') {
+      setMsg('⏳ Code accepted! Finalising connection...', 'ok');
+    } else if (d.event === 'connected_success') {
+      resetBtn();
+      hideCode();
+      setMsg('✅ Bot connected! Now test your commands in WhatsApp.', 'ok');
+      if (evtSource) { evtSource.close(); evtSource = null; }
+    } else if (d.event === 'session_rejected') {
+      resetBtn();
+      hideCode();
+      setMsg('⚠️ Session rejected by WhatsApp. Wait 20–30 min then click Clear & Retry.', 'warn');
+      document.getElementById('clearBtn').style.display = 'block';
+    } else if (d.event === 'error') {
+      resetBtn();
+      setMsg('❌ ' + (d.message || 'Error'), 'err');
+      document.getElementById('clearBtn').style.display = 'block';
+    } else if (d.event === 'connection_closed') {
+      resetBtn();
+      setMsg('⚠️ ' + (d.message || 'Connection closed'), 'warn');
+      document.getElementById('clearBtn').style.display = 'block';
+    }
+  }
+
+  async function clearAndRetry() {
+    if (!currentPhone) { startPairing(); return; }
+    document.getElementById('clearBtn').style.display = 'none';
+    hideCode(); hideMsg();
+    try {
+      await fetch('/pair-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: currentPhone })
+      });
+    } catch {}
+    startPairing();
+  }
+
+  function resetBtn() {
+    const btn = document.getElementById('pairBtn');
+    btn.disabled = false;
+    btn.textContent = 'GET PAIRING CODE';
+  }
+
+  // Check if already connected
+  fetch('/status').then(r => r.json()).then(d => {
+    if (d.botStatus === 'connected') {
+      setMsg('✅ Bot already connected. Test commands in WhatsApp.', 'ok');
+    }
+  }).catch(() => {});
+</script>
+</body>
+</html>
