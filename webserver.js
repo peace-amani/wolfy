@@ -38,6 +38,7 @@ function wipePairDir(phone) {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public')); // serve local dev pairing UI
 
 // Track active pairing socket
 let activePairSocket = null;
