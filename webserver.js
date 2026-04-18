@@ -23,6 +23,18 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 const SESSION_DIR = './session';
+const PAIR_DIR = (phone) => `./session-pair/${phone}`; // isolated per-phone pairing dir
+
+function wipePairDir(phone) {
+    const dir = PAIR_DIR(phone);
+    try {
+        if (fs.existsSync(dir)) {
+            fs.readdirSync(dir).forEach(f => fs.unlinkSync(path.join(dir, f)));
+        }
+    } catch (e) {
+        console.warn(`[WebServer] Could not wipe pair dir for ${phone}:`, e.message);
+    }
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -402,19 +414,23 @@ app.post('/clear-session', adminAuth, async (req, res) => {
 // We must reconnect using the saved creds and the socket will open as authenticated.
 async function startPairing(phone, isReconnect = false) {
     try {
+        const pairDir = PAIR_DIR(phone);
+
         if (!isReconnect) {
             botStatus = 'pairing';
             broadcastSse({ event: 'pairing_started', phone });
             await markSessionPairing(phone).catch(() => {});
+            // Always start fresh — wipe any stale creds from previous attempts
+            wipePairDir(phone);
         }
 
         const { default: makeWASocket } = await import('@whiskeysockets/baileys');
         const { useMultiFileAuthState, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, Browsers } = await import('@whiskeysockets/baileys');
 
-        if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
+        if (!fs.existsSync(pairDir)) fs.mkdirSync(pairDir, { recursive: true });
 
-        // Always reload creds from disk so reconnect picks up saved token
-        const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
+        // Use per-phone isolated dir so reconnect picks up saved token without cross-contamination
+        const { state, saveCreds } = await useMultiFileAuthState(pairDir);
         const { version } = await fetchLatestBaileysVersion();
 
         const { default: pino } = await import('pino');
@@ -507,12 +523,13 @@ async function startPairing(phone, isReconnect = false) {
                     return;
                 }
 
-                // 401/403 = session rejected — tell user to clear and retry
+                // 401/403 = session rejected — wipe stale creds so next attempt starts clean
                 if (statusCode === 401 || statusCode === 403) {
                     botStatus = 'idle';
                     activePairSocket = null;
+                    wipePairDir(phone);
                     await markSessionInactive(phone).catch(() => {});
-                    broadcastSse({ event: 'connection_closed', message: 'Session rejected by WhatsApp. Click "Clear Session" and pair again.' });
+                    broadcastSse({ event: 'connection_closed', message: 'Session rejected by WhatsApp. Please try pairing again.' });
                     return;
                 }
 

@@ -1,5 +1,6 @@
 # Session and data
 session/
+session-pair/
 data/
 tmp/
 logs/
