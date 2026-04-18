@@ -1,0 +1,33 @@
+{
+  "name": "Silent Wolf Bot",
+  "description": "Powerful WhatsApp Bot - Just add your session ID or phone number",
+  "repository": "https://github.com/777Wolf-dot/Silent-Wolf--Bot.git",
+  "logo": "https://raw.githubusercontent.com/777Wolf-dot/Silent-Wolf--Bot/main/wolf.png",
+  "keywords": ["whatsapp", "bot", "wolf", "automation"],
+  "env": {
+    "SESSION_ID": {
+      "description": "Paste your WOLF-BOT session ID here (Get from session generator)",
+      "required": false
+    },
+    "PHONE_NUMBER": {
+      "description": "OR enter your phone number (with country code, no +) for pairing code login",
+      "required": false
+    },
+    "PREFIX": {
+      "description": "Bot command prefix (default: .)",
+      "value": ".",
+      "required": false
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "formation": {
+    "worker": {
+      "quantity": 1,
+      "size": "free"
+    }
+  }
+}
