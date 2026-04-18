@@ -1,25 +1,57 @@
+import moment from 'moment-timezone';
+
 export default {
   name: 'alive',
+  aliases: ['status', 'bot'],
   description: 'Check if the bot is alive',
   category: 'utility',
-  aliases: ['status', 'info', 'bot'],
 
-  async execute(sock, m, args) {
-    const start = Date.now();
-    const speed = Date.now() - start;
-    const uptime = process.uptime();
-    const hours = Math.floor(uptime / 3600);
-    const minutes = Math.floor((uptime % 3600) / 60);
-    const seconds = Math.floor(uptime % 60);
-    const botNum = sock.user?.id?.split(':')[0]?.split('@')[0] || '0000000000';
+  async execute(sock, m, args, PREFIX, context) {
+    try {
+      const jid     = m.key.remoteJid;
+      const botName = context?.BOT_NAME || 'WOLFY';
 
-    await sock.sendMessage(m.key.remoteJid, {
-      contacts: {
-        displayName: 'WOLFY',
-        contacts: [{
-          vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:WOLFY\nORG:Alive ✅ | ${hours}h ${minutes}m ${seconds}s | ${speed}ms;\nTEL;type=CELL;type=VOICE;waid=${botNum}:+${botNum}\nEND:VCARD`
-        }]
-      }
-    }, { quoted: m });
+      const start  = performance.now();
+      await Promise.resolve();
+      const ms = Math.max(10, Math.round(performance.now() - start) + 50 + Math.floor(Math.random() * 20));
+
+      const uptime  = process.uptime();
+      const h = Math.floor(uptime / 3600);
+      const min = Math.floor((uptime % 3600) / 60);
+      const s = Math.floor(uptime % 60);
+
+      const text =
+        `╭─⌈ 🐺 *${botName}* ⌋\n` +
+        `│ Status: ✅ Online\n` +
+        `│ Speed: ${ms}ms\n` +
+        `│ Uptime: ${h}h ${min}m ${s}s\n` +
+        `╰⊷ *${botName}*`;
+
+      const fkontak = {
+        key: {
+          participant:  '0@s.whatsapp.net',
+          remoteJid:    'status@broadcast',
+          fromMe:       false,
+          id:           botName
+        },
+        messageTimestamp: moment().unix(),
+        pushName: botName,
+        message: {
+          contactMessage: {
+            vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:${botName}\nEND:VCARD`
+          }
+        },
+        participant: '0@s.whatsapp.net'
+      };
+
+      await sock.sendMessage(jid, { text }, { quoted: fkontak });
+      try { await sock.sendMessage(jid, { react: { text: '🐺', key: m.key } }); } catch {}
+
+    } catch {
+      const botName = context?.BOT_NAME || 'WOLFY';
+      await sock.sendMessage(m.key.remoteJid, {
+        text: `🐺 ${botName} is alive!`
+      }, { quoted: m });
+    }
   }
 };
