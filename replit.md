@@ -21,6 +21,8 @@ A WhatsApp bot built on Node.js using the Baileys library (@whiskeysockets/baile
   - `automation/` - Auto-react, auto-view status
   - `ethical hacking/` - Network tools
   - `menus/` - Dynamic menu generation
+  - `music media/` - song, play, video, videodocu, lyrics, spotify, shazam — all powered by songApi.js
+- `lib/songApi.js` - API wrapper for apis.xwolf.space (search, audio, video, lyrics, trending)
 - `settings.js` - Bot configuration (update settings, repo URLs)
 - `prefix_config.json` - Current prefix configuration
 - `panel-manager.js` - Panel hosting integration
