@@ -192,6 +192,17 @@ app.get('/admin/db', adminAuth, (req, res) => {
 // ====== ROUTES ======
 
 // Main UI
+// Public health check — used by VPS admin dashboard to verify Heroku connection
+app.get('/health', (req, res) => {
+    res.json({
+        ok: true,
+        service: 'WOLFY Bot',
+        sessions: botProcesses.size,
+        uptime: Math.floor(process.uptime()),
+        ts: Date.now()
+    });
+});
+
 app.get('/', (req, res) => {
     res.send(getHTML());
 });
