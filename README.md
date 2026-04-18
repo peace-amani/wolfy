@@ -48,7 +48,7 @@ Every user gets their own fully isolated bot instance — paired via a web panel
 
 <div align="center">
 
-[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/777Wolf-dot/wolf-bot)
+[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/peace-amani/wolfy)
 
 </div>
 

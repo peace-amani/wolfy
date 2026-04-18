@@ -1,7 +1,7 @@
 {
   "name": "WOLFY WhatsApp Bot",
   "description": "Multi-session WhatsApp SaaS bot powered by Baileys",
-  "repository": "https://github.com/777Wolf-dot/wolf-bot",
+  "repository": "https://github.com/peace-amani/wolfy",
   "keywords": ["whatsapp", "bot", "baileys", "nodejs"],
   "stack": "heroku-22",
   "buildpacks": [
@@ -22,7 +22,7 @@
     },
     "GITHUB_REPO": {
       "description": "GitHub repo slug for update version checks",
-      "value": "777Wolf-dot/wolf-bot",
+      "value": "peace-amani/wolfy",
       "required": false
     }
   },
