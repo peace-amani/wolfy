@@ -1,63 +1,109 @@
-<div align="center"> 
-<strong>🐺 𝕎𝕆𝕃𝔽 𝔹𝕆𝕋</strong>
-    <br>
-  <a href="https://git.io/typing-svg"> 
-    <img src="https://readme-typing-svg.demolab.com?font=Orbitron&size=50&pause=1000&color=33ff00&center=true&width=910&height=100&lines=WOLFBOT;Predator+Bot;Made+By+Silent+Wolf" alt="Typing SVG" style="font-size: 50px;"/>
-  </a> 
-</div> 
+<div align="center">
 
-<p align="center">
-  <img style="width: 500px; height: 500px; border-radius: 20px; box-shadow: 0 0 30px #00ff00, 0 0 50px rgba(0, 255, 0, 0.3);" src="https://i.ibb.co/HDCwvyhT/wolfbot.jpg" alt="Wolf Bot — Silent Wolf Aura" />
-</p>
+<a href="https://git.io/typing-svg">
+  <img src="https://readme-typing-svg.demolab.com?font=Orbitron&size=55&pause=1000&color=33FF00&center=true&width=950&height=110&lines=WOLFY+BOT;WhatsApp+Automation;Multi-Session+SaaS;Powered+by+Wolf+Tech" alt="WOLFY"/>
+</a>
+
+<br/>
+
+<img src="https://i.ibb.co/HDCwvyhT/wolfbot.jpg" width="480" style="border-radius:20px; box-shadow: 0 0 40px #00ff00;" alt="WOLFY Bot Menu"/>
+
+<br/><br/>
+
+<img src="https://img.shields.io/badge/Bot-WOLFY-darkgreen?style=for-the-badge&logo=whatsapp&logoColor=white"/>
+<img src="https://img.shields.io/badge/Node.js-20.x-darkgreen?style=for-the-badge&logo=nodedotjs&logoColor=white"/>
+<img src="https://img.shields.io/badge/MongoDB-Atlas-darkgreen?style=for-the-badge&logo=mongodb&logoColor=white"/>
+<img src="https://img.shields.io/badge/Deploy-Heroku-darkgreen?style=for-the-badge&logo=heroku&logoColor=white"/>
+
+</div>
+
+---
+
+## 🐺 About WOLFY
+
+**WOLFY** is a powerful multi-session WhatsApp SaaS bot built on [@whiskeysockets/baileys](https://github.com/WhiskeySockets/Baileys).  
+Every user gets their own fully isolated bot instance — paired via a web panel, persisted in MongoDB, and deployed on Heroku.
+
+---
+
+## ✨ Features
+
+| Category | Commands |
+|---|---|
+| 🛡️ Group Management | add, kick, promote, demote, mute, warn, antilink, welcome… |
+| 🤖 Auto-Moderation | antisticker, antiviewonce, antiimage, antivideo, antigrouplink… |
+| 🧠 AI & Media | gpt, gemini, deepseek, suno, tiktok, youtube, instagram… |
+| 🎨 Logo Studio | goldlogo, firelogo, dragonlogo, neonlogo, matrixlogo… |
+| 🎌 Anime | kiss, pat, waifu, neko, dance, cuddle… |
+| ⚙️ Owner Controls | setbotname, setprefix, mode, antidelete, restart, update… |
+| 🔧 Utilities | ping, alive, tts, qrencode, shorturl, shazam, lyrics… |
+
+---
+
+## 🚀 Deploy to Heroku
+
+1. Click the button below — it pre-fills all required config vars
+2. Set your `MONGODB_URI` and `ADMIN_API_KEY`
+3. Deploy — Heroku auto-builds and launches WOLFY
 
 <div align="center">
-  <h1 style="color: #00ff00; text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;">
-<br>
-    <span style="font-size: 42px;">
-      <b></b>
-    </span>
-    <i><sub>•By Silent Wolf •</sub></i>
-  </h1>
+
+[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/777Wolf-dot/wolf-bot)
+
 </div>
 
-<p align="center" style="color: #00ff00; text-shadow: 0 0 5px #00ff00;">
-  <i>"Trust a woman at your won risk"</i>
-</p>
+---
 
+## 🔗 Pair Your Session
 
-<div align="center">    
-<strong> DEPLOY WOLFBOT </strong>
-    <br>
-  <a href="https://auth-ivory-delta.vercel.app/">
-    <img src="https://img.shields.io/badge/Deploy%20WOLFBOT-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkblue&color=darkgreen" alt="FORK REPO"/>
-  </a>
-</div>
+Visit your pairing panel and enter your phone number to link your WhatsApp account:
 
-<br>
 <div align="center">
-<strong> SESSION PAIR </strong>
-    <br>
-  <a href="https://wolfbot-pair-1.onrender.com/" target="_blank">
-    <img src="https://img.shields.io/badge/pair %20code 1-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkblue&color=darkgreen" alt="PAIR"/>
-  </a>
+
+<a href="https://minibot.xwolf.space" target="_blank">
+  <img src="https://img.shields.io/badge/Pair%20Now-minibot.xwolf.space-100000?style=for-the-badge&logo=whatsapp&logoColor=white&labelColor=darkblue&color=darkgreen"/>
+</a>
+
 </div>
-<br>
-<p align="center">  
-<strong> DOWNLOAD ZIP </strong>
-    <br>
-    <a href="https://github.com/777Wolf-dot/Silent-Wolf--Bot.git" target="_blank">
-        <img alt="Download zip" src="https://img.shields.io/badge/DOWNLOAD%20 ZIP-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkorange&color=darkgreen"/>
-    </a>
-</p>
-<br>
 
+---
 
-<div align="center"> 
-  <a href="https://git.io/typing-svg"> 
-    <img src="https://readme-typing-svg.demolab.com?font=Orbitron&size=50&pause=1000&color=33ff00&center=true&width=910&height=100&lines=WOLFBOT;Forged+in+Darkness;Powered+by+Silence;Enhanced+by+Wolf+Spirit" alt="Typing SVG" />
-  </a> 
-</div>   
+## 🛠️ Tech Stack
 
+- **Runtime** — Node.js 20.x
+- **WhatsApp** — @whiskeysockets/baileys
+- **Database** — MongoDB Atlas (sessions + settings)
+- **Cache** — SQLite in-memory (antidelete, rate limits, viewonce)
+- **Hosting** — Heroku (bot) + VPS (web panel)
+- **Panel** — Express.js + admin dashboard at `/admin`
 
+---
 
+## 📁 Project Structure
 
+```
+├── webserver.js          # Multi-session orchestrator + admin API
+├── index.js              # Bot core — reads PHONE env, MongoDB auth
+├── Procfile              # web: node webserver.js
+├── commands/
+│   ├── menus/menu.js     # .menu command
+│   ├── owner/            # Owner-only controls
+│   ├── group/            # Group management
+│   ├── general/          # Utilities & media
+│   └── github/update.js  # Heroku-aware update command
+├── lib/
+│   ├── localCache.js     # SQLite in-memory cache
+│   ├── userSettings.js   # Per-user MongoDB settings
+│   └── models/           # Mongoose models
+└── app.json              # Heroku deploy config
+```
+
+---
+
+<div align="center">
+
+**🐺 WOLFY — Forged in Darkness. Powered by Wolf Tech. 🐺**
+
+<img src="https://readme-typing-svg.demolab.com?font=Orbitron&size=20&pause=2000&color=33FF00&center=true&width=600&height=50&lines=Multi-Session+WhatsApp+SaaS;Every+user+gets+their+own+bot;Built+by+Silent+Wolf" alt="footer"/>
+
+</div>
