@@ -16,10 +16,7 @@ export default {
       const min = Math.floor((uptime % 3600) / 60);
       const s   = Math.floor(uptime % 60);
 
-      const text =
-        `╭─⌈ ⏰ *${botName}* ⌋\n` +
-        `│ Uptime: ${h}h ${min}m ${s}s\n` +
-        `╰⊷ *${botName}*`;
+      const text = `*${botName}*\nUptime: ${h}h ${min}m ${s}s`;
 
       const fkontak = {
         key: {
