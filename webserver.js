@@ -297,6 +297,10 @@ app.post('/pair', async (req, res) => {
         activePairSocket = null;
     }
 
+    // Always wipe stale pair dir before a fresh attempt — leftover partial creds
+    // from a previous failed attempt cause WhatsApp to 401-reject on reconnect
+    wipePairDir(cleanPhone);
+
     res.json({ success: true, message: 'Pairing started. Watch the code appear on this page.' });
 
     // Start pairing in background
