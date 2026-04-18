@@ -239,19 +239,19 @@ export default {
 ├────────────────
 │ AUDIO DOWNLOADS
 ├────────────────
-│ song     (ytmp3, audio, mp3, yta)
-│ play     (music, playmp3)
-│ spotify  (sptfy, spmusic)
+│ song
+│ play
+│ spotify
 ├────────────────
 │ VIDEO DOWNLOADS
 ├────────────────
-│ video    (vid, ytmp4, dlmp4)
-│ videodocu (vidoc, hd, hdvideo)
+│ video
+│ videodocu
 ├────────────────
 │ LYRICS & IDENTIFY
 ├────────────────
-│ lyrics   (lyric, lyr)
-│ shazam   (identify, findmusic)
+│ lyrics
+│ shazam
 └────────────────
 
 ┌───────────────
