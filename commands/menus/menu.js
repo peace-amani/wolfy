@@ -235,21 +235,13 @@ export default {
 └────────────────
 
 ┌────────────────
-│ MUSIC & MEDIA DOWNLOADS
-├────────────────
-│ AUDIO DOWNLOADS
+│ MUSIC COMMANDS
 ├────────────────
 │ song
 │ play
 │ spotify
-├────────────────
-│ VIDEO DOWNLOADS
-├────────────────
 │ video
 │ videodocu
-├────────────────
-│ LYRICS & IDENTIFY
-├────────────────
 │ lyrics
 │ shazam
 └────────────────
