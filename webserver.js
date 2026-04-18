@@ -643,18 +643,32 @@ app.listen(PORT, '0.0.0.0', async () => {
     // Connect to MongoDB
     await connectDB();
 
-    // Auto-launch bot processes for all active sessions in MongoDB
-    try {
-        const activeSessions = await getActiveSessions();
-        if (activeSessions.length > 0) {
-            console.log(`[WolfBot WebServer] Found ${activeSessions.length} active session(s) — launching bots...`);
-            for (const session of activeSessions) {
-                setTimeout(() => launchBotForPhone(session.phone), 2000);
+    // Auto-launch bot processes for active sessions — HEROKU ONLY
+    // On Replit (dev), skip this to avoid competing with Heroku over the same sessions
+    // and consuming RAM that causes OOM crashes on the production dyno.
+    const isHeroku = !!process.env.DYNO;
+    if (!isHeroku) {
+        console.log('[WolfBot WebServer] DEV MODE — skipping session auto-launch. Use the pairing UI to start a bot.');
+    } else {
+        try {
+            const activeSessions = await getActiveSessions();
+            if (activeSessions.length > 0) {
+                // Limit concurrent bots to avoid OOM on Heroku Basic (512MB) dyno.
+                // Each bot process uses ~200-300MB. Cap at 2 and stagger by 20s each.
+                const MAX_STARTUP_BOTS = 2;
+                const toStart = activeSessions.slice(0, MAX_STARTUP_BOTS);
+                console.log(`[WolfBot WebServer] Found ${activeSessions.length} session(s) — launching ${toStart.length} bot(s) (cap: ${MAX_STARTUP_BOTS})...`);
+                toStart.forEach((session, i) => {
+                    setTimeout(() => launchBotForPhone(session.phone), 5000 + i * 20000);
+                });
+                if (activeSessions.length > MAX_STARTUP_BOTS) {
+                    console.log(`[WolfBot WebServer] ${activeSessions.length - MAX_STARTUP_BOTS} session(s) deferred — users can re-pair to restart their bot.`);
+                }
+            } else {
+                console.log('[WolfBot WebServer] No active sessions — waiting for users to pair.');
             }
-        } else {
-            console.log('[WolfBot WebServer] No active sessions — waiting for users to pair.');
+        } catch (err) {
+            console.error('[WolfBot WebServer] Could not load active sessions:', err.message);
         }
-    } catch (err) {
-        console.error('[WolfBot WebServer] Could not load active sessions:', err.message);
     }
 });
