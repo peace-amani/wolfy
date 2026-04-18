@@ -8,7 +8,7 @@
                         const h = Math.floor(uptime / 3600);
                         const m2 = Math.floor((uptime % 3600) / 60);
                         const s = Math.floor(uptime % 60);
-                        const successMessage = `*${BOT_NAME}*\nStatus: ✅ Connected\nPrefix: ${currentPrefix}\nUptime: ${h}h ${m2}m ${s}s`;
+                        const successMessage = `*${getBotName()}*\nStatus: ✅ Connected\nPrefix: ${currentPrefix}\nUptime: ${h}h ${m2}m ${s}s`;
                         await sock.sendMessage(ownerJid, { text: successMessage });
                         UltraCleanLogger.success('✅ Success message sent to owner');
                     } catch (error) {
@@ -217,6 +217,7 @@ process.env.DISABLE_BAILEYS_LOG = 'true';
 process.env.PINO_DISABLE = 'true';
 
 import { fileURLToPath } from 'url';
+import { getBotName } from './lib/botname.js';
 import { dirname, join } from 'path';
 import fs from 'fs';
 import path from 'path';
@@ -334,7 +335,6 @@ const DEFAULT_ANTIVIEWONCE_CONFIG = {
 };
 
 const SESSION_DIR = './session';
-const BOT_NAME = process.env.BOT_NAME || 'WOLFY';
 const VERSION = '1.1.3'; // Updated version for prefixless & new member detection & anti-viewonce
 const DEFAULT_PREFIX = process.env.PREFIX || '.';
 const OWNER_FILE = './owner.json';
@@ -1209,7 +1209,7 @@ function updateTerminalHeader() {
     console.clear();
     console.log(chalk.cyan(`
 ╔══════════════════════════════════════════════════════════════════════╗
-║   🐺 ${chalk.bold(`${BOT_NAME.toUpperCase()} v${VERSION} (PREFIXLESS & MEMBER DETECTION)`)}             
+║   🐺 ${chalk.bold(`${getBotName().toUpperCase()} v${VERSION} (PREFIXLESS & MEMBER DETECTION)`)}             
 ║   💬 Prefix  : ${prefixDisplay}
 ║   🔧 Auto Fix: ✅ ENABLED
 ║   🔄 Real-time Prefix: ✅ ENABLED
@@ -2212,7 +2212,7 @@ class AutoLinkSystem {
             const currentPrefix = getCurrentPrefix();
             const prefixDisplay = isPrefixless ? 'none (prefixless)' : `"${currentPrefix}"`;
             
-            let successMsg = `✅ *${BOT_NAME.toUpperCase()} v${VERSION} CONNECTED!*\n\n`;
+            let successMsg = `✅ *${getBotName().toUpperCase()} v${VERSION} CONNECTED!*\n\n`;
             
             if (isFirstUser) {
                 successMsg += `🎉 *FIRST TIME SETUP COMPLETE!*\n\n`;
@@ -2442,7 +2442,7 @@ class ProfessionalDefibrillator {
                 statusText = "Warning";
             }
             
-            const reportMessage = `📊 *${BOT_NAME} HEARTBEAT REPORT*\n\n` +
+            const reportMessage = `📊 *${getBotName()} HEARTBEAT REPORT*\n\n` +
                                 `⏰ *Uptime:* ${hours}h ${minutes}m\n` +
                                 `💾 *Memory:* ${memoryMB}MB ${statusEmoji}\n` +
                                 `📊 *Commands:* ${this.commandStats.total}\n` +
@@ -2474,7 +2474,7 @@ class ProfessionalDefibrillator {
             const platform = detectPlatform();
             const version = VERSION;
             
-            const startupMessage = `🚀 *${BOT_NAME} v${version} STARTED SUCCESSFULLY*\n\n` +
+            const startupMessage = `🚀 *${getBotName()} v${version} STARTED SUCCESSFULLY*\n\n` +
                                  `✅ *Professional Defibrillator Activated*\n\n` +
                                  `📋 *System Info:*\n` +
                                  `├─ Version: ${version}\n` +
@@ -2642,7 +2642,7 @@ class ProfessionalDefibrillator {
         try {
             if (!sock || !this.ownerJid) return;
             
-            const alertMessage = `🚨 *EMERGENCY ALERT - ${BOT_NAME}*\n\n` +
+            const alertMessage = `🚨 *EMERGENCY ALERT - ${getBotName()}*\n\n` +
                                `❌ *Issue Detected:* ${reason}\n\n` +
                                `📊 *Current Status:*\n` +
                                `├─ Uptime: ${Math.round(process.uptime() / 60)}m\n` +
@@ -2668,7 +2668,7 @@ class ProfessionalDefibrillator {
         try {
             if (!sock || !this.ownerJid) return;
             
-            const warningMessage = `⚠️ *MEMORY WARNING - ${BOT_NAME}*\n\n` +
+            const warningMessage = `⚠️ *MEMORY WARNING - ${getBotName()}*\n\n` +
                                  `📊 *Current Usage:* ${memoryMB}MB\n\n` +
                                  `🎯 *Thresholds:*\n` +
                                  `├─ Normal: < 300MB\n` +
@@ -2691,7 +2691,7 @@ class ProfessionalDefibrillator {
         try {
             if (!sock || !this.ownerJid) return;
             
-            const restartMessage = `🔄 *AUTO-RESTART INITIATED - ${BOT_NAME}*\n\n` +
+            const restartMessage = `🔄 *AUTO-RESTART INITIATED - ${getBotName()}*\n\n` +
                                  `📋 *Reason:* ${reason}\n\n` +
                                  `📊 *Stats before restart:*\n` +
                                  `├─ Uptime: ${Math.round(process.uptime() / 60)}m\n` +
@@ -2794,7 +2794,7 @@ async function handleConnectCommand(sock, msg, args, cleaned) {
         const platform = detectPlatform();
         
         const loadingMessage = await sock.sendMessage(chatJid, {
-            text: `🐺 *${BOT_NAME}* is checking connection... █▒▒▒▒▒▒▒▒▒`
+            text: `🐺 *${getBotName()}* is checking connection... █▒▒▒▒▒▒▒▒▒`
         }, { quoted: msg });
 
         const latency = Date.now() - start;
@@ -3533,7 +3533,7 @@ async function startBot(loginMode = 'pair', loginData = null) {
                         const h = Math.floor(uptime / 3600);
                         const m2 = Math.floor((uptime % 3600) / 60);
                         const s = Math.floor(uptime % 60);
-                        const successMessage = `*${BOT_NAME}*\nStatus: ✅ Connected\nPrefix: ${currentPrefix}\nUptime: ${h}h ${m2}m ${s}s`;
+                        const successMessage = `*${getBotName()}*\nStatus: ✅ Connected\nPrefix: ${currentPrefix}\nUptime: ${h}h ${m2}m ${s}s`;
                         await sock.sendMessage(ownerJid, { text: successMessage });
                         UltraCleanLogger.success('✅ Success message sent to owner');
                     } catch (error) {
@@ -3612,7 +3612,7 @@ async function startBot(loginMode = 'pair', loginData = null) {
                             console.clear();
                             console.log(chalk.greenBright(`
 ╔══════════════════════════════════════════════════════════════════════╗
-║                    🔗 PAIRING CODE - ${BOT_NAME}                    ║
+║                    🔗 PAIRING CODE - ${getBotName()}                    ║
 ╠══════════════════════════════════════════════════════════════════════╣
 ║ 📞 Phone  : ${chalk.cyan(loginData.padEnd(40))}║
 ║ 🔑 Code   : ${chalk.yellow.bold(formattedCode.padEnd(39))}║
@@ -3883,7 +3883,7 @@ async function triggerRestartAutoFix(sock) {
                 const currentPrefix = getCurrentPrefix();
                 const prefixDisplay = isPrefixless ? 'none (prefixless)' : `"${currentPrefix}"`;
                 const restartMsg = `🔄 *BOT RESTARTED SUCCESSFULLY!*\n\n` +
-                                 `✅ *${BOT_NAME} v${VERSION}* is now online\n` +
+                                 `✅ *${getBotName()} v${VERSION}* is now online\n` +
                                  `👑 Owner: +${cleaned.cleanNumber}\n` +
                                  `💬 Prefix: ${prefixDisplay}\n` +
                                  `👁️ Status Detector: ✅ ACTIVE\n` +
@@ -3944,7 +3944,7 @@ async function handleSuccessfulConnection(sock, loginMode, loginData) {
 ║  👑 Owner : +${ownerInfo.ownerNumber}
 ║  🔧 Clean JID : ${ownerInfo.ownerJid}
 ║  🔗 LID : ${ownerInfo.ownerLid || 'Not set'}
-║  📱 Device : ${chalk.cyan(`${BOT_NAME} - Chrome`)}       
+║  📱 Device : ${chalk.cyan(`${getBotName()} - Chrome`)}       
 ║  🕒 Time   : ${chalk.yellow(currentTime)}                 
 ║  🔥 Status : ${chalk.redBright('24/7 Ready!')}         
 ║  💬 Prefix : ${prefixDisplay}
@@ -3973,7 +3973,7 @@ async function handleSuccessfulConnection(sock, loginMode, loginData) {
             const cleaned = jidManager.cleanJid(OWNER_JID);
             
             const loadingMessage = await sock.sendMessage(OWNER_JID, {
-                text: `🐺 *${BOT_NAME}* is starting up... █▒▒▒▒▒▒▒▒▒`
+                text: `🐺 *${getBotName()}* is starting up... █▒▒▒▒▒▒▒▒▒`
             });
 
             const latency = Date.now() - start;
@@ -3992,7 +3992,7 @@ async function handleSuccessfulConnection(sock, loginMode, loginData) {
             
             await sock.sendMessage(OWNER_JID, {
                 text: `
-╭━━🌕 *WELCOME TO ${BOT_NAME.toUpperCase()}* 🌕━━╮
+╭━━🌕 *WELCOME TO ${getBotName().toUpperCase()}* 🌕━━╮
 ┃  ⚡ *User:* ${cleaned.cleanNumber}
 ┃  🔴 *Prefix:* ${prefixDisplay}
 ┃  🐾 *Ultimatefix:* ✅ 
@@ -4175,7 +4175,7 @@ async function handleIncomingMessage(sock, msg) {
                     OWNER_NUMBER: OWNER_CLEAN_NUMBER,
                     OWNER_JID: OWNER_CLEAN_JID,
                     OWNER_LID: OWNER_LID,
-                    BOT_NAME,
+                    BOT_NAME: getBotName(),
                     VERSION,
                     isOwner: () => jidManager.isOwner(msg),
                     jidManager,
@@ -4296,12 +4296,12 @@ case 'av':
                     const pingStart2 = performance.now();
                     await Promise.resolve();
                     const pingMs = Math.max(10, Math.round(performance.now() - pingStart2) + 50 + Math.floor(Math.random() * 20));
-                    const text = `*${BOT_NAME}*\nSpeed: ${pingMs}ms`;
+                    const text = `*${getBotName()}*\nSpeed: ${pingMs}ms`;
                     const fkontak = {
-                        key: { participant: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: BOT_NAME },
+                        key: { participant: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: getBotName() },
                         messageTimestamp: Math.floor(Date.now() / 1000),
-                        pushName: BOT_NAME,
-                        message: { contactMessage: { vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:${BOT_NAME}\nEND:VCARD` } },
+                        pushName: getBotName(),
+                        message: { contactMessage: { vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:${getBotName()}\nEND:VCARD` } },
                         participant: '0@s.whatsapp.net'
                     };
                     await sock.sendMessage(chatId, { text }, { quoted: fkontak });
@@ -4316,12 +4316,12 @@ case 'av':
                     const upH = Math.floor(uptimeSec / 3600);
                     const upM = Math.floor((uptimeSec % 3600) / 60);
                     const upS = Math.floor(uptimeSec % 60);
-                    const text = `*${BOT_NAME}*\nUptime: ${upH}h ${upM}m ${upS}s`;
+                    const text = `*${getBotName()}*\nUptime: ${upH}h ${upM}m ${upS}s`;
                     const fkontak = {
-                        key: { participant: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: BOT_NAME },
+                        key: { participant: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: getBotName() },
                         messageTimestamp: Math.floor(Date.now() / 1000),
-                        pushName: BOT_NAME,
-                        message: { contactMessage: { vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:${BOT_NAME}\nEND:VCARD` } },
+                        pushName: getBotName(),
+                        message: { contactMessage: { vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:${getBotName()}\nEND:VCARD` } },
                         participant: '0@s.whatsapp.net'
                     };
                     await sock.sendMessage(chatId, { text }, { quoted: fkontak });
@@ -4352,7 +4352,7 @@ case 'av':
             }
 
             case 'help':
-                let helpText = `🐺 *${BOT_NAME} HELP*\n\n`;
+                let helpText = `🐺 *${getBotName()} HELP*\n\n`;
                 helpText += `Prefix: "${isPrefixless ? 'none (prefixless)' : currentPrefix}"\n`;
                 helpText += `Mode: ${BOT_MODE}\n`;
                 helpText += `Commands: ${commands.size}\n\n`;
@@ -4553,7 +4553,7 @@ case 'av':
                 
                 const antiviewonceStats = antiViewOnceSystem ? antiViewOnceSystem.getStats() : null;
                 
-                let defibText = `🩺 *${BOT_NAME} DEFIBRILLATOR STATUS*\n\n`;
+                let defibText = `🩺 *${getBotName()} DEFIBRILLATOR STATUS*\n\n`;
                 defibText += `📊 *Monitoring:* ${stats.isMonitoring ? '✅ ACTIVE' : '❌ INACTIVE'}\n`;
                 defibText += `💓 *Heartbeats:* ${stats.heartbeatCount}\n`;
                 defibText += `🔁 *Restarts:* ${stats.restartCount}\n`;
@@ -4606,7 +4606,7 @@ case 'av':
 
 async function main() {
     try {
-        UltraCleanLogger.success(`🚀 Starting ${BOT_NAME} v${VERSION} (PREFIXLESS & MEMBER DETECTION & ANTI-VIEWONCE)`);
+        UltraCleanLogger.success(`🚀 Starting ${getBotName()} v${VERSION} (PREFIXLESS & MEMBER DETECTION & ANTI-VIEWONCE)`);
         UltraCleanLogger.info(`Loaded prefix: "${isPrefixless ? 'none (prefixless)' : getCurrentPrefix()}"`);
         UltraCleanLogger.info(`Prefixless mode: ${isPrefixless ? '✅ ENABLED' : '❌ DISABLED'}`);
         UltraCleanLogger.info(`Auto-connect on link: ${AUTO_CONNECT_ON_LINK ? '✅' : '❌'}`);

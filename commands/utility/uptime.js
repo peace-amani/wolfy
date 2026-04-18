@@ -1,4 +1,5 @@
 import moment from 'moment-timezone';
+import { getBotName } from '../../lib/botname.js';
 
 export default {
   name: 'uptime',
@@ -9,9 +10,9 @@ export default {
   async execute(sock, m, args, PREFIX, context) {
     try {
       const jid     = m.key.remoteJid;
-      const botName = context?.BOT_NAME || 'WOLFY';
+      const botName = getBotName();
 
-      const uptime  = process.uptime();
+      const uptime = process.uptime();
       const h   = Math.floor(uptime / 3600);
       const min = Math.floor((uptime % 3600) / 60);
       const s   = Math.floor(uptime % 60);
@@ -19,19 +20,10 @@ export default {
       const text = `*${botName}*\nUptime: ${h}h ${min}m ${s}s`;
 
       const fkontak = {
-        key: {
-          participant:  '0@s.whatsapp.net',
-          remoteJid:    'status@broadcast',
-          fromMe:       false,
-          id:           botName
-        },
+        key: { participant: '0@s.whatsapp.net', remoteJid: 'status@broadcast', fromMe: false, id: botName },
         messageTimestamp: moment().unix(),
         pushName: botName,
-        message: {
-          contactMessage: {
-            vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:${botName}\nEND:VCARD`
-          }
-        },
+        message: { contactMessage: { vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:${botName}\nEND:VCARD` } },
         participant: '0@s.whatsapp.net'
       };
 
@@ -39,14 +31,11 @@ export default {
       try { await sock.sendMessage(jid, { react: { text: '⏰', key: m.key } }); } catch {}
 
     } catch {
-      const botName = context?.BOT_NAME || 'WOLFY';
-      const uptime  = process.uptime();
-      const h   = Math.floor(uptime / 3600);
+      const uptime = process.uptime();
+      const h = Math.floor(uptime / 3600);
       const min = Math.floor((uptime % 3600) / 60);
-      const s   = Math.floor(uptime % 60);
-      await sock.sendMessage(m.key.remoteJid, {
-        text: `⏰ ${botName}\nUptime: ${h}h ${min}m ${s}s`
-      }, { quoted: m });
+      const s = Math.floor(uptime % 60);
+      await sock.sendMessage(m.key.remoteJid, { text: `⏰ ${getBotName()}\nUptime: ${h}h ${min}m ${s}s` }, { quoted: m });
     }
   }
 };
