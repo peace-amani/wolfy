@@ -234,13 +234,24 @@ export default {
 │ tts
 └────────────────
 
+┌────────────────
+│ MUSIC & MEDIA DOWNLOADS
 ├────────────────
-│ MUSIC
+│ AUDIO DOWNLOADS
 ├────────────────
-│ play                    
-│ song                    
-│ lyrics                  
-│ spotify                             
+│ song     (ytmp3, audio, mp3, yta)
+│ play     (music, playmp3)
+│ spotify  (sptfy, spmusic)
+├────────────────
+│ VIDEO DOWNLOADS
+├────────────────
+│ video    (vid, ytmp4, dlmp4)
+│ videodocu (vidoc, hd, hdvideo)
+├────────────────
+│ LYRICS & IDENTIFY
+├────────────────
+│ lyrics   (lyric, lyr)
+│ shazam   (identify, findmusic)
 └────────────────
 
 ┌───────────────
