@@ -653,41 +653,38 @@ app.listen(PORT, '0.0.0.0', async () => {
         console.log('[WolfBot WebServer] DEV MODE — skipping session auto-launch. Use the pairing UI to start a bot.');
     } else {
         try {
-            const activeSessions = await getActiveSessions();
-            if (activeSessions.length > 0) {
+            // On Heroku startup, launch ALL sessions that aren't mid-pairing.
+            // We do NOT rely on the active/inactive flag — that changes during
+            // deploys/restarts and would cause bots to never relaunch.
+            const allSessions = await getAllSessions();
+            const toRelaunch = allSessions.filter(s => s.status !== 'pairing' && s.phone);
+            if (toRelaunch.length > 0) {
                 // Limit concurrent bots to avoid OOM on Heroku Basic (512MB) dyno.
                 // Each bot process uses ~200-300MB. Cap at 2 and stagger by 20s each.
                 const MAX_STARTUP_BOTS = 2;
-                const toStart = activeSessions.slice(0, MAX_STARTUP_BOTS);
-                const deferred = activeSessions.slice(MAX_STARTUP_BOTS);
-                console.log(`[WolfBot WebServer] Found ${activeSessions.length} session(s) — launching ${toStart.length} bot(s) (cap: ${MAX_STARTUP_BOTS})...`);
+                const toStart = toRelaunch.slice(0, MAX_STARTUP_BOTS);
+                const deferred = toRelaunch.slice(MAX_STARTUP_BOTS);
+                console.log(`[WolfBot WebServer] Found ${toRelaunch.length} session(s) — launching ${toStart.length} bot(s) (cap: ${MAX_STARTUP_BOTS})...`);
                 toStart.forEach((session, i) => {
                     setTimeout(() => launchBotForPhone(session.phone), 5000 + i * 20000);
                 });
-                // Mark deferred sessions as inactive so dashboard shows accurate state
-                for (const s of deferred) {
-                    await markSessionInactive(s.phone).catch(() => {});
-                }
                 if (deferred.length > 0)
-                    console.log(`[WolfBot WebServer] ${deferred.length} session(s) marked inactive (over memory cap) — users can re-pair.`);
+                    console.log(`[WolfBot WebServer] ${deferred.length} session(s) deferred — over memory cap. Users can restart individually from dashboard.`);
             } else {
-                console.log('[WolfBot WebServer] No active sessions — waiting for users to pair.');
+                console.log('[WolfBot WebServer] No sessions found — waiting for users to pair.');
             }
         } catch (err) {
-            console.error('[WolfBot WebServer] Could not load active sessions:', err.message);
+            console.error('[WolfBot WebServer] Could not load sessions:', err.message);
         }
     }
 
-    // Graceful shutdown — mark all running sessions inactive in MongoDB so the
-    // dashboard doesn't show stale "Running" status after the dyno restarts.
+    // Graceful shutdown — just stop child processes.
+    // Do NOT mark sessions inactive in MongoDB; they will be relaunched on next startup.
+    // Sessions only become inactive when WhatsApp rejects them or admin deletes them.
     const shutdown = async (signal) => {
-        console.log(`[WolfBot WebServer] ${signal} received — cleaning up...`);
-        const phones = Array.from(botProcesses.keys());
-        for (const phone of phones) {
-            stopBotForPhone(phone);
-            await markSessionInactive(phone).catch(() => {});
-        }
-        console.log(`[WolfBot WebServer] Marked ${phones.length} session(s) inactive. Exiting.`);
+        console.log(`[WolfBot WebServer] ${signal} received — stopping ${botProcesses.size} bot process(es)...`);
+        for (const phone of botProcesses.keys()) stopBotForPhone(phone);
+        console.log('[WolfBot WebServer] All bots stopped. Exiting.');
         process.exit(0);
     };
     process.on('SIGTERM', () => shutdown('SIGTERM'));
