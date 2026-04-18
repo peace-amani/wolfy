@@ -238,12 +238,32 @@ export default {
 │ MUSIC COMMANDS
 ├────────────────
 │ song
+│ audio
+│ ytmp3
+│ dlmp3
+│ yta
+│ mp3
 │ play
+│ music
+│ playmp3
 │ spotify
+│ sptfy
+│ spmusic
 │ video
+│ vid
+│ ytmp4
+│ dlmp4
+│ ytvideo
 │ videodocu
+│ vidoc
+│ hd
+│ hdvideo
 │ lyrics
+│ lyric
+│ lyr
 │ shazam
+│ identify
+│ findmusic
 └────────────────
 
 ┌───────────────
